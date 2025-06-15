@@ -36,6 +36,7 @@ plot_include_source = True
 html_theme = "pydata_sphinx_theme"
 
 html_theme_options = {
+    "github_url": "https://github.com/JSS95/scikit-pns",
     "logo": {
         "text": "scikit-pns",
     },
