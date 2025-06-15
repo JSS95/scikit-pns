@@ -13,14 +13,34 @@ author = "Jisoo Song"
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = []
+extensions = [
+    "sphinx.ext.autodoc",
+    "sphinx.ext.viewcode",
+    "numpydoc",
+    "matplotlib.sphinxext.plot_directive",
+]
 
-templates_path = ["_templates"]
-exclude_patterns = []
+autodoc_member_order = "bysource"
+
+numpydoc_use_plots = True
+numpydoc_show_class_members = False
+numpydoc_show_inherited_class_members = False
+numpydoc_class_members_toctree = False
+
+plot_include_source = True
 
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = "alabaster"
-html_static_path = ["_static"]
+html_theme = "pydata_sphinx_theme"
+
+html_theme_options = {
+    "logo": {
+        "text": "scikit-pns",
+    },
+    "show_toc_level": 2,
+}
+
+plot_html_show_formats = False
+plot_html_show_source_link = False
