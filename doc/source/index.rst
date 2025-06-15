@@ -10,5 +10,8 @@ scikit-pns documentation
 Module reference
 ================
 
+.. automodule:: skpns.pns
+    :members:
+
 .. automodule:: skpns.util
     :members:

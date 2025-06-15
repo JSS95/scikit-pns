@@ -1,20 +1,6 @@
 """
 Utilities
 ---------
-
-Functions to generate directional data examples.
-
-.. plot::
-
-    >>> import numpy as np
-    >>> from skpns.util import circular_data, unit_sphere, circle
-    >>> v, theta = np.array([1/np.sqrt(3), -1/np.sqrt(3), 1/np.sqrt(3)]), np.pi/6
-    >>> sphere, data, circle3d = unit_sphere(), circular_data().T, circle(v, theta)
-    >>> import matplotlib.pyplot as plt  # doctest: +SKIP
-    ... ax = plt.figure().add_subplot(projection='3d', computed_zorder=False)
-    ... ax.plot_surface(*sphere, color='skyblue', alpha=0.6, edgecolor='gray')
-    ... ax.scatter(*data, marker=".")
-    ... ax.plot(*circle3d)
 """
 
 import numpy as np
