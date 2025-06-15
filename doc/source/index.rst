@@ -3,15 +3,12 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
+************************
 scikit-pns documentation
-========================
+************************
 
-Add your content using ``reStructuredText`` syntax. See the
-`reStructuredText <https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_
-documentation for details.
+Module reference
+================
 
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-
+.. automodule:: skpns.util
+    :members:

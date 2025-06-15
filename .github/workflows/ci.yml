@@ -60,7 +60,7 @@ jobs:
         run: |
           pip install .[test]
 
-      # - run: pytest
+      - run: pytest
 
   doc:
 
