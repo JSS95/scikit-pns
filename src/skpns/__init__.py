@@ -55,10 +55,10 @@ class PNS(TransformerMixin, BaseEstimator):
         D = X.shape[1]
         pns_ = pns(X, self.tol)
         for _ in range(D - self.n_components):
-            v, r, A = next(pns_)
+            v, r, X = next(pns_)
             self.v_.append(v)
             self.r_.append(r)
-        self.embedding_ = A
+        self.embedding_ = X
 
     def fit(self, X, y=None):
         """Find principal nested spheres for data X.
