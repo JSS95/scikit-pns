@@ -9,6 +9,7 @@ import numpy as np
 from scipy.optimize import least_squares
 
 __all__ = [
+    "pns",
     "pss",
     "proj",
     "residual",
@@ -17,6 +18,51 @@ __all__ = [
     "Exp",
     "Log",
 ]
+
+
+def pns(x, tol=1e-3):
+    """Principal nested spheres analysis.
+
+    Parameters
+    ----------
+    x : (N, d+1) real array
+        Data on d-sphere.
+    tol : float, default=1e-3
+        Convergence tolerance in radian.
+
+    Yields
+    ------
+    v : 1-D ndarray
+        Principal axis.
+    r : scalar
+        Principal geodesic distance.
+    x : (N, d-i) real array
+        Data transformed onto low-dimensional unit hypersphere.
+
+    Examples
+    --------
+    >>> from skpns.pns import pns, from_unit_sphere
+    >>> from skpns.util import circular_data, unit_sphere, circle
+    >>> x = circular_data()
+    >>> v, r, A = next(pns(x))
+    >>> import matplotlib.pyplot as plt  # doctest: +SKIP
+    ... ax = plt.figure().add_subplot(projection='3d', computed_zorder=False)
+    ... ax.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
+    ... ax.scatter(*x.T, marker=".")
+    ... ax.scatter(*from_unit_sphere(A, v, r).T, marker="x")
+    ... ax.plot(*circle(v, r), color="tab:red")
+    """
+    d = x.shape[1] - 1
+
+    for _ in range(1, d):
+        v, r = pss(x, tol)
+        A = proj(x, v, r)
+        x = to_unit_sphere(A, v, r)
+        yield v, r, x
+
+    v, r = pss(x, tol)
+    x = np.full((len(x), 1), 0)
+    yield v, r, x
 
 
 def pss(x, tol=1e-3):
@@ -32,22 +78,9 @@ def pss(x, tol=1e-3):
     Returns
     -------
     v : (d+1,) real array
-        Optimal axis.
+        Principal axis.
     r : scalar
-        Optimal geodesic distance.
-
-    Examples
-    --------
-    >>> from skpns.pns import pss
-    >>> from skpns.util import circular_data, unit_sphere, circle
-    >>> x = circular_data()
-    >>> v, r = pss(x)
-    >>> import matplotlib.pyplot as plt  # doctest: +SKIP
-    ... ax = plt.figure().add_subplot(projection='3d', computed_zorder=False)
-    ... ax.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
-    ... ax.scatter(*x.T, marker=".")
-    ... ax.scatter(*v, marker="x")
-    ... ax.plot(*circle(v, r), color="tab:red")
+        Principal geodesic distance.
     """
     _, D = x.shape
     if D <= 1:
@@ -60,11 +93,11 @@ def pss(x, tol=1e-3):
         pole = np.array([0] * (D - 1) + [1])
         R = np.eye(D)
         _x = x
-        v, r = _pns(_x)
+        v, r = _pss(_x)
         while np.arccos(np.dot(pole, v)) > tol:
             # Rotate so that v becomes the pole
             _x, _R = _rotate(_x, v)
-            v, r = _pns(_x)
+            v, r = _pss(_x)
             R = R @ _R.T
         v = R @ v  # re-rotate back
     return v, r
@@ -76,11 +109,16 @@ def proj(x, v, r):
     Parameters
     ----------
     x : (N, d+1) real array
-        Data on d-sphere.
+        Data on unit d-sphere.
     v : (d+1,) real array
         Subsphere axis.
     r : scalar
         Subsphere geodesic distance.
+
+    Returns
+    -------
+    A : (N, d+1) real array
+        Points projected onto the small-subsphere on unit d-sphere.
     """
     geod = np.arccos(x @ v)[..., np.newaxis]
     return (np.sin(r) * x + np.sin(geod - r) * v) / np.sin(geod)
@@ -170,7 +208,7 @@ def from_unit_sphere(x, v, r):
     return (R.T @ vec.T).T
 
 
-def _pns(pts):
+def _pss(pts):
     # Projection
     x_dag = Log(pts)
     v_dag_init = np.mean(x_dag, axis=0)
