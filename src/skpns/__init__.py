@@ -2,7 +2,7 @@
 
 from sklearn.base import BaseEstimator, TransformerMixin
 
-from .pns import pns
+from .pns import pns, proj, to_unit_sphere
 
 __all__ = [
     "PNS",
@@ -95,3 +95,24 @@ class PNS(TransformerMixin, BaseEstimator):
         """
         self._fit_transform(X)
         return self.embedding_
+
+    def transform(self, X):
+        """Transform X onto the fitted subsphere.
+
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            Data on (n_features - 1)-dimensional hypersphere.
+
+        Returns
+        -------
+        X_new : array-like, shape (n_samples, n_components)
+            X transformed in the new space.
+        """
+        if X.shape[1] != len(self.v_[0]):
+            raise ValueError("Input dimension does not match the fitted dimension.")
+
+        for v, r in zip(self.v_, self.r_):
+            A = proj(X, v, r)
+            X = to_unit_sphere(A, v, r)
+        return X
