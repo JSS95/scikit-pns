@@ -49,6 +49,7 @@ class PNS(TransformerMixin, BaseEstimator):
         self.tol = tol
 
     def _fit_transform(self, X):
+        self._n_features = X.shape[1]
         self.v_ = []
         self.r_ = []
 
@@ -109,8 +110,11 @@ class PNS(TransformerMixin, BaseEstimator):
         X_new : array-like, shape (n_samples, n_components)
             X transformed in the new space.
         """
-        if X.shape[1] != len(self.v_[0]):
-            raise ValueError("Input dimension does not match the fitted dimension.")
+        if X.shape[1] != self._n_features:
+            raise ValueError(
+                f"Input dimension {X.shape[1]} does not match "
+                f"fitted dimension {self._n_features}."
+            )
 
         for v, r in zip(self.v_, self.r_):
             A = proj(X, v, r)

@@ -19,3 +19,4 @@ def test_PNS_transform_noreduction():
     pns = PNS(n_components=X.shape[1])
     Xnew = pns.fit_transform(X)
     assert np.all(X == Xnew)
+    assert np.all(X == pns.transform(X))
