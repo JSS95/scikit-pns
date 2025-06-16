@@ -1,0 +1,54 @@
+name: CD
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  release:
+    types: [published]
+
+jobs:
+
+  twine_check:
+    name: Check if dists can be published
+    runs-on: ubuntu-latest
+    if: github.event_name != 'release'
+
+    steps:
+      - name: get repo
+        uses: actions/checkout@v2
+
+      - name: set up Python
+        uses: actions/setup-python@v2
+
+      - name: build package
+        run: |
+          pip install build
+          python -m build
+
+      - name: Check with twine
+        run: |
+          pip install twine
+          pip install -U packaging
+          twine check dist/* --strict
+
+  publish:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release' && github.event.action == 'published'
+
+    steps:
+      - name: get repo
+        uses: actions/checkout@v2
+
+      - name: set up Python
+        uses: actions/setup-python@v2
+
+      - name: build package
+        run: |
+          pip install build
+          python -m build
+
+      - name: publish to PyPI
+        run: |
+          pip install twine
+          twine upload dist/* -u __token__ -p ${{ secrets.pypi_token }}
