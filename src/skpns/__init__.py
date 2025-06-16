@@ -2,7 +2,7 @@
 
 from sklearn.base import BaseEstimator, TransformerMixin
 
-from .pns import pns, proj, to_unit_sphere
+from .pns import from_unit_sphere, pns, proj, to_unit_sphere
 
 __all__ = [
     "PNS",
@@ -115,4 +115,19 @@ class PNS(TransformerMixin, BaseEstimator):
         for v, r in zip(self.v_, self.r_):
             A = proj(X, v, r)
             X = to_unit_sphere(A, v, r)
+        return X
+
+    def to_hypersphere(self, X):
+        """Transform the low-dimensional data into the original hypersphere.
+
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_components)
+
+        Returns
+        -------
+        X_new : array-like of shape (n_samples, n_features)
+        """
+        for v, r in zip(reversed(self.v_), reversed(self.r_)):
+            X = from_unit_sphere(X, v, r)
         return X

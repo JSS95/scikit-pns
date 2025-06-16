@@ -7,6 +7,9 @@
 scikit-pns documentation
 ************************
 
+.. plot:: plot-header.py
+    :include-source: False
+
 Module reference
 ================
 
