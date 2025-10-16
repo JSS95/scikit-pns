@@ -39,8 +39,12 @@ source = "https://github.com/JSS95/scikit-pns"
 documentation = "https://scikit-pns.readthedocs.io"
 
 [project.optional-dependencies]
+onnx =[
+    "skl2onnx",
+]
 test = [
     "pytest",
+    "scikit-pns[onnx]",
 ]
 doc = [
     "sphinx",
