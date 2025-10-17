@@ -18,6 +18,7 @@ from skl2onnx.algebra.onnx_ops import (
     OnnxTranspose,
     OnnxUnsqueeze,
 )
+from skl2onnx.common.data_types import guess_numpy_type
 
 __all__ = [
     "pns_shape_calculator",
@@ -34,7 +35,26 @@ def pns_shape_calculator(operator):
 
 
 def pns_converter(scope, operator, container):
-    raise NotImplementedError
+    op = operator.raw_operator
+    opv = container.target_opset
+
+    # We retrieve the unique input.
+    X = operator.inputs[0]
+
+    # In most case, computation happen in floats.
+    # But it might be with double. ONNX is very strict
+    # about types, every constant should have the same
+    # type as the input.
+    dtype = guess_numpy_type(X.type)
+
+    # We tell in ONNX language how to compute the unique output.
+    # op_version=opv tells which opset is requested
+    for v, r in zip(op.v_, op.r_):
+        v = v.astype(dtype)
+        r = r.astype(dtype)
+        A = onnx_proj(X, v, r, opv)
+        X = onnx_to_unit_sphere(A, v, r, opv)
+    X.add_to(scope, container)
 
 
 def onnx_proj(x, v, r, op_version=None):
