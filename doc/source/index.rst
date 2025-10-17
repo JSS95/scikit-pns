@@ -21,15 +21,18 @@ PNS can be converted to ONNX and saved.
 
     To use this feature, you need to install scikit-pns with ``[onnx]`` optional dependency, i.e., ``pip install scikit-pns[onnx]``.
 
-.. code-block:: python
+.. plot::
 
     from skpns import PNS
     from skpns.util import circular_data
     from skl2onnx import to_onnx
+    import matplotlib.pyplot as plt
 
     # Train and save model
     X = circular_data()
     pns = PNS(2).fit(X)
+    Xpred = pns.transform(X)
+
     onx = to_onnx(pns, X[:1])
     with open("pns.onnx", "wb") as f:
         f.write(onx.SerializeToString())
@@ -40,7 +43,11 @@ PNS can be converted to ONNX and saved.
     sess = rt.InferenceSession("pns.onnx", providers=["CPUExecutionProvider"])
     input_name = sess.get_inputs()[0].name
     label_name = sess.get_outputs()[0].name
-    pred_onx = sess.run([label_name], {input_name: X.astype(np.float32)})[0]
+    Xpred_onnx = sess.run([label_name], {input_name: X})[0]
+
+    plt.plot(*Xpred.T, "x")
+    plt.plot(*Xpred_onnx.T, "x")
+    plt.show()
 
 
 Module reference
