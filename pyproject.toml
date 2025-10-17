@@ -51,6 +51,7 @@ doc = [
     "numpydoc",
     "pydata_sphinx_theme",
     "matplotlib",
+    "onnxruntime",
 ]
 dev = [
     "flake8",
