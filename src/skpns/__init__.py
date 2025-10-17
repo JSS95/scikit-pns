@@ -135,3 +135,14 @@ class PNS(TransformerMixin, BaseEstimator):
         for v, r in zip(reversed(self.v_), reversed(self.r_)):
             X = from_unit_sphere(X, v, r)
         return X
+
+
+try:
+    from skl2onnx import update_registered_converter
+
+    from .onnx import pns_converter, pns_shape_calculator
+
+    update_registered_converter(PNS, "SkpnsPNS", pns_shape_calculator, pns_converter)
+
+except ModuleNotFoundError:
+    pass

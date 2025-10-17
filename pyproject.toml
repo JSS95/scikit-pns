@@ -39,14 +39,21 @@ source = "https://github.com/JSS95/scikit-pns"
 documentation = "https://scikit-pns.readthedocs.io"
 
 [project.optional-dependencies]
+onnx =[
+    "skl2onnx",
+]
 test = [
     "pytest",
+    "onnxruntime",
+    "scikit-pns[onnx]",
 ]
 doc = [
     "sphinx",
     "numpydoc",
     "pydata_sphinx_theme",
     "matplotlib",
+    "onnxruntime",
+    "scikit-pns[onnx]",
 ]
 dev = [
     "flake8",

@@ -20,6 +20,12 @@ Principal nested spheres analysis for scikit-learn.
 >>> X_new = PNS(n_components=2).fit_transform(X)
 ```
 
+## Installation
+
+```
+$ pip install scikit-pns
+```
+
 ## Documentation
 
 The manual can be found online:

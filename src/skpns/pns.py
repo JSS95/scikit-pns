@@ -61,7 +61,7 @@ def pns(x, tol=1e-3):
         yield v, r, x
 
     v, r = pss(x, tol)
-    x = np.full((len(x), 1), 0)
+    x = np.full((len(x), 1), 0, dtype=x.dtype)
     yield v, r, x
 
 
@@ -100,7 +100,7 @@ def pss(x, tol=1e-3):
             v, r = _pss(_x)
             R = R @ _R.T
         v = R @ v  # re-rotate back
-    return v, r
+    return v.astype(x.dtype), r.astype(x.dtype)
 
 
 def proj(x, v, r):
@@ -162,7 +162,7 @@ def _R(v):
     theta = np.arccos(v[-1])
     Id = np.eye(len(A))
     R = Id + np.sin(theta) * A + (np.cos(theta) - 1) * (np.outer(a, a) + np.outer(c, c))
-    return R
+    return R.astype(v.dtype)
 
 
 def to_unit_sphere(x, v, r):
@@ -183,7 +183,7 @@ def to_unit_sphere(x, v, r):
         Data points on unit hypersphere.
     """
     R = _R(v)
-    return (1 / np.sin(r) * R[:-1:, :] @ x.T).T
+    return x @ (1 / np.sin(r) * R[:-1:, :]).T
 
 
 def from_unit_sphere(x, v, r):
