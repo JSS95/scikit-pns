@@ -46,7 +46,7 @@ PNS can be converted to ONNX and saved.
     label_name = sess.get_outputs()[0].name
     Xpred_onnx = sess.run([label_name], {input_name: X})[0]
 
-    plt.plot(*Xpred.T, "x")
+    plt.plot(*Xpred.T, "o")
     plt.plot(*Xpred_onnx.T, "x")
     plt.show()
 
