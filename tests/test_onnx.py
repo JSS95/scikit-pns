@@ -9,7 +9,7 @@ from skpns.util import circular_data
 def test_onnx(tmp_path):
     path = tmp_path / "pns.onnx"
 
-    X = circular_data()
+    X = circular_data().astype(np.float32)
     pns = PNS(n_components=2).fit(X)
     Xpred = pns.transform(X)
 

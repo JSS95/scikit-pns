@@ -162,7 +162,7 @@ def _R(v):
     theta = np.arccos(v[-1])
     Id = np.eye(len(A))
     R = Id + np.sin(theta) * A + (np.cos(theta) - 1) * (np.outer(a, a) + np.outer(c, c))
-    return R
+    return R.astype(v.dtype)
 
 
 def to_unit_sphere(x, v, r):

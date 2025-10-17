@@ -2,6 +2,7 @@
 
 import numpy as np
 from skl2onnx.algebra.onnx_ops import (
+    OnnxAcos,
     OnnxAdd,
     OnnxDiv,
     OnnxMatMul,
@@ -36,8 +37,7 @@ def pns_converter(scope, operator, container):
     dtype = guess_numpy_type(X.type)
 
     for v, r in zip(op.v_[:-1], op.r_[:-1]):
-        v = v.astype(dtype)
-        r = r.reshape(1).astype(dtype)
+        v, r = v.astype(dtype), r.reshape(1).astype(dtype)
         A = onnx_proj(X, v, r, opv)
         X = onnx_to_unit_sphere(A, v, r, opv)
     v, r = op.v_[-1].astype(dtype), op.r_[-1].reshape(1).astype(dtype)
@@ -47,8 +47,10 @@ def pns_converter(scope, operator, container):
 
 
 def onnx_proj(X, v, r, opv, outnames=None):
-    r = r.reshape(1)
-    geod = OnnxMatMul(X, v.reshape(-1, 1), op_version=opv)  # (N, 1)
+    geod = OnnxAcos(
+        OnnxMatMul(X, v.reshape(-1, 1), op_version=opv),
+        op_version=opv,
+    )  # (N, 1)
     ret = OnnxDiv(
         OnnxAdd(
             OnnxMul(np.sin(r), X, op_version=opv),  # (N, d+1)

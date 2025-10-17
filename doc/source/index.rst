@@ -23,13 +23,14 @@ PNS can be converted to ONNX and saved.
 
 .. plot::
 
+    import numpy as np
     from skpns import PNS
     from skpns.util import circular_data
     from skl2onnx import to_onnx
     import matplotlib.pyplot as plt
 
     # Train and save model
-    X = circular_data()
+    X = circular_data().astype(np.float32)  # Must be float32
     pns = PNS(2).fit(X)
     Xpred = pns.transform(X)
 
