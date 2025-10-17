@@ -183,7 +183,7 @@ def to_unit_sphere(x, v, r):
         Data points on unit hypersphere.
     """
     R = _R(v)
-    return (1 / np.sin(r) * R[:-1:, :] @ x.T).T
+    return x @ (1 / np.sin(r) * R[:-1:, :]).T
 
 
 def from_unit_sphere(x, v, r):

@@ -1,6 +1,7 @@
+from skl2onnx import to_onnx
+
 from skpns import PNS
 from skpns.util import circular_data
-from skl2onnx import to_onnx
 
 
 def test_to_onnx():
