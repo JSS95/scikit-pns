@@ -1,3 +1,4 @@
+import numpy as np
 import onnxruntime as rt
 from skl2onnx import to_onnx
 
@@ -10,6 +11,8 @@ def test_onnx(tmp_path):
 
     X = circular_data()
     pns = PNS(n_components=2).fit(X)
+    Xpred = pns.transform(X)
+
     onx = to_onnx(pns, X[:1])
     with open(path, "wb") as f:
         f.write(onx.SerializeToString())
@@ -17,4 +20,6 @@ def test_onnx(tmp_path):
     sess = rt.InferenceSession(path, providers=["CPUExecutionProvider"])
     input_name = sess.get_inputs()[0].name
     label_name = sess.get_outputs()[0].name
-    sess.run([label_name], {input_name: X})[0]
+    Xpred_onnx = sess.run([label_name], {input_name: X})[0]
+
+    assert np.linalg.norm(Xpred - Xpred_onnx) < 1e-3
