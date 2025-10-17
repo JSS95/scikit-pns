@@ -61,7 +61,7 @@ def pns(x, tol=1e-3):
         yield v, r, x
 
     v, r = pss(x, tol)
-    x = np.full((len(x), 1), 0)
+    x = np.full((len(x), 1), 0, dtype=x.dtype)
     yield v, r, x
 
 
@@ -100,7 +100,7 @@ def pss(x, tol=1e-3):
             v, r = _pss(_x)
             R = R @ _R.T
         v = R @ v  # re-rotate back
-    return v, r
+    return v.astype(x.dtype), r.astype(x.dtype)
 
 
 def proj(x, v, r):

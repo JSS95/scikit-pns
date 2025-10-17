@@ -10,7 +10,6 @@ from skl2onnx.algebra.onnx_ops import (
     OnnxSin,
     OnnxSub,
 )
-from skl2onnx.common.data_types import guess_numpy_type
 
 from .pns import _R
 
@@ -34,13 +33,12 @@ def pns_converter(scope, operator, container):
     out = operator.outputs
 
     X = operator.inputs[0]
-    dtype = guess_numpy_type(X.type)
 
     for v, r in zip(op.v_[:-1], op.r_[:-1]):
-        v, r = v.astype(dtype), r.reshape(1).astype(dtype)
+        v, r = v, r.reshape(1)
         A = onnx_proj(X, v, r, opv)
         X = onnx_to_unit_sphere(A, v, r, opv)
-    v, r = op.v_[-1].astype(dtype), op.r_[-1].reshape(1).astype(dtype)
+    v, r = op.v_[-1], op.r_[-1].reshape(1)
     A = onnx_proj(X, v, r, opv)
     X = onnx_to_unit_sphere(A, v, r, opv, out[:1])
     X.add_to(scope, container)
