@@ -52,6 +52,7 @@ doc = [
     "numpydoc",
     "pydata_sphinx_theme",
     "matplotlib",
+    "onnxruntime",
     "scikit-pns[onnx]",
 ]
 dev = [
