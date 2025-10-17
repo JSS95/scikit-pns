@@ -52,6 +52,7 @@ doc = [
     "numpydoc",
     "pydata_sphinx_theme",
     "matplotlib",
+    "scikit-pns[onnx]",
 ]
 dev = [
     "flake8",
