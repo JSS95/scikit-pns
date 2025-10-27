@@ -48,6 +48,7 @@ PNS can be converted to ONNX and saved.
 
     plt.plot(*Xpred.T, "o")
     plt.plot(*Xpred_onnx.T, "x")
+    plt.gca().set_aspect("equal")
     plt.show()
 
 
