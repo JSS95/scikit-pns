@@ -21,6 +21,8 @@ class PNS(TransformerMixin, BaseEstimator):
     n_components : int, default=2
         Number of components to keep.
         Data are transformed onto unit hypersphere embedded in this dimension.
+        For example, 'n_components=2' transforms data onto a 2D unit circle,
+        represented by x and y coordinates.
     tol : float, default=1e-3
         Optimization tolerance.
 
