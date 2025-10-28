@@ -1,4 +1,8 @@
-"""Principal nested spheres analysis."""
+"""Principal nested spheres (PNS) analysis [1]_.
+
+.. [1] Jung, Sungkyu, Ian L. Dryden, and James Stephen Marron.
+       "Analysis of principal nested spheres." Biometrika 99.3 (2012): 551-568.
+"""
 
 from sklearn.base import BaseEstimator, TransformerMixin
 
@@ -10,7 +14,7 @@ __all__ = [
 
 
 class PNS(TransformerMixin, BaseEstimator):
-    """Principal nested spheres (PNS) analysis [1]_.
+    """Transform to PNS with extrinsic coordinates.
 
     Parameters
     ----------
@@ -28,11 +32,6 @@ class PNS(TransformerMixin, BaseEstimator):
         Principal directions of nested spheres.
     r_ : ndarray of shape (n_features - 1,)
         Principal radii of nested spheres.
-
-    References
-    ----------
-    .. [1] Jung, Sungkyu, Ian L. Dryden, and James Stephen Marron.
-       "Analysis of principal nested spheres." Biometrika 99.3 (2012): 551-568.
 
     Examples
     --------
