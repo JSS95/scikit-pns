@@ -11,10 +11,12 @@ from scipy.optimize import least_squares
 __all__ = [
     "pss",
     "proj",
+    "embed",
+    "to_unit_sphere",
+    "reconstruct",
+    "from_unit_sphere",
     "pns",
     "residual",
-    "to_unit_sphere",
-    "from_unit_sphere",
     "Exp",
     "Log",
 ]
@@ -75,6 +77,30 @@ def pss(x, tol=1e-3):
     return v.astype(x.dtype), r.astype(x.dtype)
 
 
+def _pss(pts):
+    # Projection
+    x_dag = Log(pts)
+    v_dag_init = np.mean(x_dag, axis=0)
+    r_init = np.mean(np.linalg.norm(x_dag - v_dag_init, axis=1))
+    init = np.concatenate([v_dag_init, [r_init]])
+    # Optimization
+    opt = least_squares(_loss, init, args=(x_dag,), method="lm").x
+    v_dag_opt, r_opt = opt[:-1], opt[-1]
+    v_opt = Exp(v_dag_opt.reshape(1, -1)).reshape(-1)
+    r_opt = np.mod(r_opt, np.pi)
+    return v_opt, r_opt
+
+
+def _loss(params, x_dag):
+    v_dag, r = params[:-1], params[-1]
+    return np.linalg.norm(x_dag - v_dag.reshape(1, -1), axis=1) - r
+
+
+def _rotate(pts, v):
+    R = _R(v)
+    return (R @ pts.T).T, R
+
+
 def proj(x, v, r):
     """Minimum-geodesic projection of points to subsphere.
 
@@ -114,6 +140,69 @@ def proj(x, v, r):
     return (np.sin(r) * x + np.sin(geod - r) * v) / np.sin(geod)
 
 
+def _R(v):
+    a = np.zeros_like(v)
+    a[-1] = 1.0
+    b = v
+    c = b - a * (a @ b)
+    c /= np.linalg.norm(c)
+
+    A = np.outer(a, c) - np.outer(c, a)
+    theta = np.arccos(v[-1])
+    Id = np.eye(len(A))
+    R = Id + np.sin(theta) * A + (np.cos(theta) - 1) * (np.outer(a, a) + np.outer(c, c))
+    return R.astype(v.dtype)
+
+
+def embed(x, v, r):
+    """Transform projected data on subsphere to unit hypersphere.
+
+    Parameters
+    ----------
+    x : (N, d+1) real array
+        Data projected on subsphere.
+    v : (d+1,) real array
+        Subsphere axis.
+    r : scalar
+        Subsphere geodesic distance.
+
+    Returns
+    -------
+    (N, d) real array
+        Data points on unit hypersphere.
+    """
+    R = _R(v)
+    return x @ (1 / np.sin(r) * R[:-1:, :]).T
+
+
+to_unit_sphere = embed
+
+
+def reconstruct(x, v, r):
+    """Transform data on unit hypersphere to projected data on subsphere.
+
+    Parameters
+    ----------
+    x : (N, d) real array
+        Data points on unit hypersphere.
+    v : (d+1,) real array
+        Subsphere axis.
+    r : scalar
+        Subsphere geodesic distance.
+
+    Returns
+    -------
+    (N, d+1) real array
+        Data projected on subsphere.
+    """
+    R = _R(v)
+    vec = np.hstack([np.sin(r) * x, np.full(len(x), np.cos(r)).reshape(-1, 1)])
+    return (R.T @ vec.T).T
+
+
+from_unit_sphere = reconstruct
+
+
 def pns(x, tol=1e-3):
     """Principal nested spheres analysis.
 
@@ -135,7 +224,7 @@ def pns(x, tol=1e-3):
 
     Examples
     --------
-    >>> from skpns.pns import pns, from_unit_sphere
+    >>> from skpns.pns import pns, reconstruct
     >>> from skpns.util import circular_data, unit_sphere, circle
     >>> x = circular_data()
     >>> v, r, A = next(pns(x))
@@ -143,7 +232,7 @@ def pns(x, tol=1e-3):
     ... ax = plt.figure().add_subplot(projection='3d', computed_zorder=False)
     ... ax.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
     ... ax.scatter(*x.T, marker=".")
-    ... ax.scatter(*from_unit_sphere(A, v, r).T, marker="x")
+    ... ax.scatter(*reconstruct(A, v, r).T, marker="x")
     ... ax.plot(*circle(v, r), color="tab:red")
     """
     d = x.shape[1] - 1
@@ -151,7 +240,7 @@ def pns(x, tol=1e-3):
     for _ in range(1, d):
         v, r = pss(x, tol)
         A = proj(x, v, r)
-        x = to_unit_sphere(A, v, r)
+        x = embed(A, v, r)
         yield v, r, x
 
     v, r = pss(x, tol)
@@ -184,87 +273,6 @@ def residual(x, v, r):
     else:
         xi = np.arccos(np.dot(x, v.T)) - r
     return xi
-
-
-def _R(v):
-    a = np.zeros_like(v)
-    a[-1] = 1.0
-    b = v
-    c = b - a * (a @ b)
-    c /= np.linalg.norm(c)
-
-    A = np.outer(a, c) - np.outer(c, a)
-    theta = np.arccos(v[-1])
-    Id = np.eye(len(A))
-    R = Id + np.sin(theta) * A + (np.cos(theta) - 1) * (np.outer(a, a) + np.outer(c, c))
-    return R.astype(v.dtype)
-
-
-def to_unit_sphere(x, v, r):
-    """Transform projected data on subsphere to unit hypersphere.
-
-    Parameters
-    ----------
-    x : (N, d+1) real array
-        Data projected on subsphere.
-    v : (d+1,) real array
-        Subsphere axis.
-    r : scalar
-        Subsphere geodesic distance.
-
-    Returns
-    -------
-    (N, d) real array
-        Data points on unit hypersphere.
-    """
-    R = _R(v)
-    return x @ (1 / np.sin(r) * R[:-1:, :]).T
-
-
-def from_unit_sphere(x, v, r):
-    """Transform data on unit hypersphere to projected data on subsphere.
-
-    Parameters
-    ----------
-    x : (N, d) real array
-        Data points on unit hypersphere.
-    v : (d+1,) real array
-        Subsphere axis.
-    r : scalar
-        Subsphere geodesic distance.
-
-    Returns
-    -------
-    (N, d+1) real array
-        Data projected on subsphere.
-    """
-    R = _R(v)
-    vec = np.hstack([np.sin(r) * x, np.full(len(x), np.cos(r)).reshape(-1, 1)])
-    return (R.T @ vec.T).T
-
-
-def _pss(pts):
-    # Projection
-    x_dag = Log(pts)
-    v_dag_init = np.mean(x_dag, axis=0)
-    r_init = np.mean(np.linalg.norm(x_dag - v_dag_init, axis=1))
-    init = np.concatenate([v_dag_init, [r_init]])
-    # Optimization
-    opt = least_squares(_loss, init, args=(x_dag,), method="lm").x
-    v_dag_opt, r_opt = opt[:-1], opt[-1]
-    v_opt = Exp(v_dag_opt.reshape(1, -1)).reshape(-1)
-    r_opt = np.mod(r_opt, np.pi)
-    return v_opt, r_opt
-
-
-def _loss(params, x_dag):
-    v_dag, r = params[:-1], params[-1]
-    return np.linalg.norm(x_dag - v_dag.reshape(1, -1), axis=1) - r
-
-
-def _rotate(pts, v):
-    R = _R(v)
-    return (R @ pts.T).T, R
 
 
 def Exp(z):
