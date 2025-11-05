@@ -9,15 +9,109 @@ import numpy as np
 from scipy.optimize import least_squares
 
 __all__ = [
-    "pns",
     "pss",
     "proj",
+    "pns",
     "residual",
     "to_unit_sphere",
     "from_unit_sphere",
     "Exp",
     "Log",
 ]
+
+
+def pss(x, tol=1e-3):
+    """Find the principal subsphere from data on a hypersphere.
+
+    Parameters
+    ----------
+    x : (N, d+1) real array
+        Extrinsic coordinates of data on a ``d``-dimensional hypersphere,
+        embedded in a ``d+1``-dimensional space.
+    tol : float, default=1e-3
+        Convergence tolerance in radian.
+
+    Returns
+    -------
+    v : (d+1,) real array
+        Principal axis of the subsphere.
+    r : scalar
+        Principal geodesic distance.
+
+    See Also
+    --------
+    proj : Project *x* onto the found principal subsphere.
+
+    Examples
+    --------
+    >>> from skpns.pns import pss
+    >>> from skpns.util import circular_data, unit_sphere
+    >>> x = circular_data()
+    >>> v, _ = pss(x)
+    >>> import matplotlib.pyplot as plt  # doctest: +SKIP
+    ... ax = plt.figure().add_subplot(projection='3d', computed_zorder=False)
+    ... ax.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
+    ... ax.scatter(*x.T, marker=".")
+    ... ax.scatter(*v)
+    """
+    _, D = x.shape
+    if D <= 1:
+        raise ValueError("Data must be on at least 1-sphere.")
+    elif D == 2:
+        r = 0
+        v = np.mean(x, axis=0)
+        v /= np.linalg.norm(v)
+    else:
+        pole = np.array([0] * (D - 1) + [1])
+        R = np.eye(D)
+        _x = x
+        v, r = _pss(_x)
+        while np.arccos(np.dot(pole, v)) > tol:
+            # Rotate so that v becomes the pole
+            _x, _R = _rotate(_x, v)
+            v, r = _pss(_x)
+            R = R @ _R.T
+        v = R @ v  # re-rotate back
+    return v.astype(x.dtype), r.astype(x.dtype)
+
+
+def proj(x, v, r):
+    """Minimum-geodesic projection of points to subsphere.
+
+    Parameters
+    ----------
+    x : (N, d+1) real array
+        Extrinsic coordinates of data on a ``d``-dimensional hypersphere,
+        embedded in a ``d+1``-dimensional space.
+    v : (d+1,) real array
+        Subsphere axis.
+    r : scalar
+        Subsphere geodesic distance.
+
+    Returns
+    -------
+    A : (N, d+1) real array
+        Extrinsic coordinates of data on a ``d``-dimensional hypersphere,
+        projected onto the found principal subsphere.
+
+    See Also
+    --------
+    pss : Find *v* and *r* for the principal subsphere.
+
+    Examples
+    --------
+    >>> from skpns.pns import pss, proj
+    >>> from skpns.util import circular_data, unit_sphere
+    >>> x = circular_data()
+    >>> A = proj(x, *pss(x))
+    >>> import matplotlib.pyplot as plt  # doctest: +SKIP
+    ... ax = plt.figure().add_subplot(projection='3d', computed_zorder=False)
+    ... ax.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
+    ... ax.scatter(*x.T, marker=".")
+    ... ax.scatter(*A.T, marker="x")
+    """
+    geod = np.arccos(x @ v)[..., np.newaxis]
+    return (np.sin(r) * x + np.sin(geod - r) * v) / np.sin(geod)
 
 
 def pns(x, tol=1e-3):
@@ -63,65 +157,6 @@ def pns(x, tol=1e-3):
     v, r = pss(x, tol)
     x = np.full((len(x), 1), 0, dtype=x.dtype)
     yield v, r, x
-
-
-def pss(x, tol=1e-3):
-    """Find the principal subsphere, i.e., lower the dimension by one.
-
-    Parameters
-    ----------
-    x : (N, d+1) real array
-        Data on d-sphere.
-    tol : float, default=1e-3
-        Convergence tolerance in radian.
-
-    Returns
-    -------
-    v : (d+1,) real array
-        Principal axis.
-    r : scalar
-        Principal geodesic distance.
-    """
-    _, D = x.shape
-    if D <= 1:
-        raise ValueError("Data must be on at least 1-sphere.")
-    elif D == 2:
-        r = 0
-        v = np.mean(x, axis=0)
-        v /= np.linalg.norm(v)
-    else:
-        pole = np.array([0] * (D - 1) + [1])
-        R = np.eye(D)
-        _x = x
-        v, r = _pss(_x)
-        while np.arccos(np.dot(pole, v)) > tol:
-            # Rotate so that v becomes the pole
-            _x, _R = _rotate(_x, v)
-            v, r = _pss(_x)
-            R = R @ _R.T
-        v = R @ v  # re-rotate back
-    return v.astype(x.dtype), r.astype(x.dtype)
-
-
-def proj(x, v, r):
-    """Minimum-geodesic projection of points to subsphere.
-
-    Parameters
-    ----------
-    x : (N, d+1) real array
-        Data on unit d-sphere.
-    v : (d+1,) real array
-        Subsphere axis.
-    r : scalar
-        Subsphere geodesic distance.
-
-    Returns
-    -------
-    A : (N, d+1) real array
-        Points projected onto the small-subsphere on unit d-sphere.
-    """
-    geod = np.arccos(x @ v)[..., np.newaxis]
-    return (np.sin(r) * x + np.sin(geod - r) * v) / np.sin(geod)
 
 
 def residual(x, v, r):
