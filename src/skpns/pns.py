@@ -2,7 +2,7 @@
 PNS
 ---
 
-Functions to find principal nested spheres.
+Functions for principal nested spheres analysis.
 """
 
 import numpy as np

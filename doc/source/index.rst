@@ -19,7 +19,9 @@ PNS can be converted to ONNX and saved.
 
 .. note::
 
-    To use this feature, you need to install scikit-pns with ``[onnx]`` optional dependency, i.e., ``pip install scikit-pns[onnx]``.
+    To use this feature, you need to install scikit-pns with ``[onnx]`` optional dependency::
+
+        pip install scikit-pns[onnx]
 
 .. plot::
 
