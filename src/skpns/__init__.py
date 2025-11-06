@@ -4,11 +4,12 @@
        "Analysis of principal nested spheres." Biometrika 99.3 (2012): 551-568.
 """
 
-from .sklearn import PNS, ExtrinsicPNS
+from .sklearn import PNS, ExtrinsicPNS, IntrinsicPNS
 
 __all__ = [
     "ExtrinsicPNS",
     "PNS",
+    "IntrinsicPNS",
 ]
 
 try:

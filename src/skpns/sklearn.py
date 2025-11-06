@@ -1,5 +1,6 @@
 """Scikit-learn wrappers for PNS."""
 
+import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 
 from .pns import embed, pns, proj, reconstruct
@@ -7,16 +8,17 @@ from .pns import embed, pns, proj, reconstruct
 __all__ = [
     "ExtrinsicPNS",
     "PNS",
+    "IntrinsicPNS",
 ]
 
 
 class ExtrinsicPNS(TransformerMixin, BaseEstimator):
     """Principal nested spheres (PNS) analysis with extrinsic coordinates.
 
-    Reduces the dimensionality of data on a high-dimensional unit hypersphere
+    Reduces the dimensionality of data on a high-dimensional hypersphere
     while preserving its spherical geometry.
 
-    The resulting data is represented by extrinsic coordinates.
+    The resulting data are represented by extrinsic coordinates.
     For example, `n_components=2` transforms data onto a 2D unit circle,
     represented by x and y coordinates.
 
@@ -24,7 +26,7 @@ class ExtrinsicPNS(TransformerMixin, BaseEstimator):
     ----------
     n_components : int, default=2
         Number of components to keep.
-        Data is transformed onto a unit hypersphere embedded in this dimensional space.
+        Data are transformed onto a unit hypersphere embedded in this dimensional space.
     tol : float, default=1e-3
         Optimization tolerance.
 
@@ -149,8 +151,89 @@ class ExtrinsicPNS(TransformerMixin, BaseEstimator):
         return X
 
     def to_hypersphere(self, X):
-        """alias of :meth:`inverse_transform`"""
+        """Alias for :meth:`inverse_transform`."""
         return self.inverse_transform(X)
 
 
 PNS = ExtrinsicPNS
+
+
+class IntrinsicPNS(TransformerMixin, BaseEstimator):
+    r"""Principal nested spheres (PNS) analysis with intrinsic coordinates.
+
+    The transformed data are in hyperspherical coordinates, with the range of angles in
+    each dimension being
+
+    .. math::
+
+        [-\pi/2, \pi/2], \ldots, [-\pi/2, \pi/2], [-\pi, \pi].
+
+    Parameters
+    ----------
+    n_components : int, default=2
+        Number of components to keep.
+        Data are transformed onto a unit hypersphere in this dimension, embedded in
+        `n_components + 1` dimensions.
+    tol : float, default=1e-3
+        Optimization tolerance.
+
+    Examples
+    --------
+    >>> from skpns import IntrinsicPNS
+    >>> from skpns.util import circular_data, unit_sphere
+    >>> X = circular_data()
+    >>> pns = IntrinsicPNS(n_components=2)
+    >>> X_transformed = pns.fit_transform(X)
+    >>> import matplotlib.pyplot as plt
+    ... fig = plt.figure()
+    ... ax1 = fig.add_subplot(121, projection='3d', computed_zorder=False)
+    ... ax1.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
+    ... ax1.scatter(*X.T, c=X_transformed[:, -1])
+    ... ax2 = fig.add_subplot(122)
+    ... ax2.set_xlim(-np.pi/2, np.pi/2)
+    ... ax2.set_ylim(-np.pi, np.pi)
+    ... ax2.scatter(*X_transformed.T, c=X_transformed[:, -1])
+    """
+
+    def __init__(self, n_components=2, tol=1e-3):
+        self.n_components = n_components
+        self.tol = tol
+
+    def fit(self, X, y=None):
+        self._n_features = X.shape[1]
+        self.v_ = []
+        self.r_ = []
+
+        pns_ = pns(X, self.tol)
+        for v, r, X in pns_:
+            self.v_.append(v)
+            self.r_.append(r)
+        return self
+
+    def transform(self, X, y=None):
+        if X.shape[1] != self._n_features:
+            raise ValueError(
+                f"Input dimension {X.shape[1]} does not match "
+                f"fitted dimension {self._n_features}."
+            )
+
+        residuals = []
+        for i in range(self._n_features - 2):
+            v = self.v_[i]
+            r = self.r_[i]
+            # proj()
+            geod = np.arccos(X @ v)[..., np.newaxis]
+            A = (np.sin(r) * X + np.sin(geod - r) * v) / np.sin(geod)
+            residuals.append(geod - r)
+            X = embed(A, v, r)
+
+        # deal with the last dimension
+        v, r = self.v_[-1], self.r_[-1]
+        residuals.append(np.arctan2(X @ (v @ [[0, 1], [-1, 0]]), X @ v).reshape(-1, 1))
+
+        residuals = np.concatenate(residuals, axis=-1)
+        return residuals[:, -self.n_components :]
+
+    def fit_transform(self, X, y=None):
+        # TODO: make this more efficient
+        return self.fit(X).transform(X)
