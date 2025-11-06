@@ -3,7 +3,7 @@
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 
-from .pns import embed, pns, proj, pss, reconstruct
+from .pns import _rotate, embed, pns, proj, pss, reconstruct
 
 __all__ = [
     "ExtrinsicPNS",
@@ -159,118 +159,212 @@ PNS = ExtrinsicPNS
 
 
 class IntrinsicPNS(TransformerMixin, BaseEstimator):
-    r"""Principal nested spheres (PNS) analysis with intrinsic coordinates.
+    pass
+    # r"""Principal nested spheres (PNS) analysis with intrinsic coordinates.
 
-    Reduces the dimensionality of data on a high-dimensional hypersphere
-    while preserving its spherical geometry.
+    # Reduces the dimensionality of data on a high-dimensional hypersphere
+    # while preserving its spherical geometry.
 
-    The resulting data are represented by intrinsic coordinates.
-    For example, `n_components=2` transforms data onto the surface of a 3D sphere,
-    represented by spherical coordinates.
+    # The resulting data are represented by intrinsic coordinates.
+    # For example, `n_components=2` transforms data onto the surface of a 3D sphere,
+    # represented by spherical coordinates.
 
-    The transformed data are in hyperspherical coordinates, with the range of angles in
-    each dimension being
+    # The first coordinate is the azimuthal angle in :math:`[-\pi, \pi]`.
+    # The following coordinates, if existing, are the polar angles in :math:`[-\pi/2, \pi/2]`.
 
-    .. math::
+    # Parameters
+    # ----------
+    # n_components : int, default=None
+    #     Number of components to keep.
+    #     Data are transformed onto a unit hypersphere in this dimension, embedded in
+    #     `n_components + 1` dimensions.
+    #     If None, all components are kept.
+    # tol : float, default=1e-3
+    #     Optimization tolerance.
 
-        [-\pi/2, \pi/2], \ldots, [-\pi/2, \pi/2], [-\pi, \pi].
+    # Attributes
+    # ----------
+    # embedding_ : ndarray of shape (n_samples, n_components)
+    #     Stores the embedding vectors.
+    # v_ : list of (n_features - 1) arrays
+    #     Principal directions of nested spheres.
+    # r_ : ndarray of shape (n_features - 1,)
+    #     Principal radii of nested spheres.
 
-    Parameters
-    ----------
-    n_components : int, default=None
-        Number of components to keep.
-        Data are transformed onto a unit hypersphere in this dimension, embedded in
-        `n_components + 1` dimensions.
-        If None, all components are kept.
-    tol : float, default=1e-3
-        Optimization tolerance.
+    # Examples
+    # --------
+    # >>> from skpns import IntrinsicPNS
+    # >>> from skpns.util import circular_data, unit_sphere
+    # >>> X = circular_data()
+    # >>> pns = IntrinsicPNS()
+    # >>> X_transformed = pns.fit_transform(X)
+    # >>> import matplotlib.pyplot as plt
+    # ... fig = plt.figure()
+    # ... ax1 = fig.add_subplot(121, projection='3d', computed_zorder=False)
+    # ... ax1.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
+    # ... ax1.scatter(*X.T, c=X_transformed[:, 0])
+    # ... ax2 = fig.add_subplot(122)
+    # ... ax2.set_xlim(-np.pi, np.pi)
+    # ... ax2.set_ylim(-np.pi/2, np.pi/2)
+    # ... ax2.scatter(*X_transformed.T, c=X_transformed[:, 0])
+    # """
 
-    Attributes
-    ----------
-    embedding_ : ndarray of shape (n_samples, n_components)
-        Stores the embedding vectors.
-    v_ : list of (n_features - 1) arrays
-        Principal directions of nested spheres.
-    r_ : ndarray of shape (n_features - 1,)
-        Principal radii of nested spheres.
+    # def __init__(self, n_components=None, tol=1e-3):
+    #     self.n_components = n_components
+    #     self.tol = tol
 
-    Examples
-    --------
-    >>> from skpns import IntrinsicPNS
-    >>> from skpns.util import circular_data, unit_sphere
-    >>> X = circular_data()
-    >>> pns = IntrinsicPNS()
-    >>> X_transformed = pns.fit_transform(X)
-    >>> import matplotlib.pyplot as plt
-    ... fig = plt.figure()
-    ... ax1 = fig.add_subplot(121, projection='3d', computed_zorder=False)
-    ... ax1.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
-    ... ax1.scatter(*X.T, c=X_transformed[:, -1])
-    ... ax2 = fig.add_subplot(122)
-    ... ax2.set_xlim(-np.pi/2, np.pi/2)
-    ... ax2.set_ylim(-np.pi, np.pi)
-    ... ax2.scatter(*X_transformed.T, c=X_transformed[:, -1])
-    """
+    # def _fit_transform(self, X):
+    #     d = X.shape[1] - 1
+    #     if self.n_components is None:
+    #         self.n_components = X.shape[1] - 1
 
-    def __init__(self, n_components=None, tol=1e-3):
-        self.n_components = n_components
-        self.tol = tol
+    #     self._n_features = X.shape[1]
+    #     self.v_ = []
+    #     self.r_ = []
 
-    def _fit_transform(self, X):
-        if self.n_components is None:
-            self.n_components = X.shape[1] - 1
+    #     # signed residual xi (will be scaled to be Xi)
+    #     residuals = []
+    #     for _ in range(self._n_features - 2):
+    #         v, r = pss(X, self.tol)
+    #         self.v_.append(v)
+    #         self.r_.append(r)
 
-        self._n_features = X.shape[1]
-        self.v_ = []
-        self.r_ = []
+    #         # Projection
+    #         geod = np.arccos(X @ v)[..., np.newaxis]
+    #         A = (np.sin(r) * X + np.sin(geod - r) * v) / np.sin(geod)
+    #         residuals.append(geod - r)
+    #         X = embed(A, v, r)
+    #     # deal with the last dimension
+    #     v, r = pss(X, self.tol)
+    #     self.v_.append(v)  # elements: v1, v2, ..., 
+    #     self.r_.append(r)
+    #     residuals.append(np.arctan2(X @ (v @ [[0, 1], [-1, 0]]), X @ v).reshape(-1, 1))
 
-        residuals = []
-        for _ in range(self._n_features - 2):
-            v, r = pss(X, self.tol)
-            self.v_.append(v)
-            self.r_.append(r)
 
-            # Projection
-            geod = np.arccos(X @ v)[..., np.newaxis]
-            A = (np.sin(r) * X + np.sin(geod - r) * v) / np.sin(geod)
-            residuals.append(geod - r)
-            X = embed(A, v, r)
 
-        # deal with the last dimension
-        v, r = pss(X, self.tol)
-        self.v_.append(v)
-        self.r_.append(r)
-        residuals.append(np.arctan2(X @ (v @ [[0, 1], [-1, 0]]), X @ v).reshape(-1, 1))
-        self.embedding_ = np.concatenate(residuals, axis=-1)[:, -self.n_components :]
 
-    def fit(self, X, y=None):
-        self._fit_transform(X)
-        return self
 
-    def fit_transform(self, X, y=None):
-        self._fit_transform(X)
-        return self.embedding_
+    #     # Scale residuals: Xi(d-k) = prod(sin(r_i))_{i=1}^{k-1} * xi(k)
+    #     Xi = np.empty((len(X), d))
+    #     sin_r = np.sin(self.r_)
 
-    def transform(self, X, y=None):
-        if X.shape[1] != self._n_features:
-            raise ValueError(
-                f"Input dimension {X.shape[1]} does not match "
-                f"fitted dimension {self._n_features}."
-            )
+    #     for k in range(d):
+    #         Xi[:, k] = 
 
-        residuals = []
-        for i in range(self._n_features - 2):
-            v = self.v_[i]
-            r = self.r_[i]
-            # proj()
-            geod = np.arccos(X @ v)[..., np.newaxis]
-            A = (np.sin(r) * X + np.sin(geod - r) * v) / np.sin(geod)
-            residuals.append(geod - r)
-            X = embed(A, v, r)
 
-        # deal with the last dimension
-        v, r = self.v_[-1], self.r_[-1]
-        residuals.append(np.arctan2(X @ (v @ [[0, 1], [-1, 0]]), X @ v).reshape(-1, 1))
+    #     Xi[:, 0] = np.prod(sin_r[:1]) * residuals[-1]
 
-        residuals = np.concatenate(residuals, axis=-1)
-        return residuals[:, -self.n_components :]
+
+
+
+
+
+
+    #     # residuals = np.flip(np.concatenate(residuals, axis=-1), axis=-1)
+    #     # self.embedding_ = residuals[:, :self.n_components]
+
+    # def fit(self, X, y=None):
+    #     self._fit_transform(X)
+    #     return self
+
+    # def fit_transform(self, X, y=None):
+    #     self._fit_transform(X)
+    #     return self.embedding_
+
+    # def transform(self, X, y=None):
+    #     if X.shape[1] != self._n_features:
+    #         raise ValueError(
+    #             f"Input dimension {X.shape[1]} does not match "
+    #             f"fitted dimension {self._n_features}."
+    #         )
+
+    #     residuals = []
+    #     for i in range(self._n_features - 2):
+    #         v = self.v_[i]
+    #         r = self.r_[i]
+    #         # proj()
+    #         geod = np.arccos(X @ v)[..., np.newaxis]
+    #         A = (np.sin(r) * X + np.sin(geod - r) * v) / np.sin(geod)
+    #         residuals.append(geod - r)
+    #         X = embed(A, v, r)
+
+    #     # deal with the last dimension
+    #     v, r = self.v_[-1], self.r_[-1]
+    #     residuals.append(np.arctan2(X @ (v @ [[0, 1], [-1, 0]]), X @ v).reshape(-1, 1))
+
+    #     residuals = np.flip(np.concatenate(residuals, axis=-1), axis=-1)
+    #     return residuals[:, :self.n_components]
+
+    # # def inverse_transform(self, Xi):
+    # #     """
+    # #     Examples
+    # #     --------
+    # #     >>> from skpns import IntrinsicPNS
+    # #     >>> from skpns.util import circular_data, unit_sphere
+    # #     >>> X = circular_data()
+    # #     >>> pns = IntrinsicPNS(2)
+    # #     """
+    # #     _, n = Xi.shape
+    # #     if n + 1 > self._n_features:
+    # #         raise ValueError(
+    # #             f"Input extrinsic dimension {n + 1} is larger than "
+    # #             f"fitted dimension {self._n_features}."
+    # #         )
+    # #     rs = list(reversed(self.r_))
+    # #     vs = list(reversed(self.v_))
+
+    # #     # Deal with the first dimension
+    # #     v, r = vs[0], rs[0]
+    # #     X[:, 0]
+
+    # # #     # De-centralize data
+    # # #     X = X.copy()
+    # # #     X[:, :-1] += self.r_[:-1]
+    # # #     X[:, -1] += self._cartesian_to_spherical(self.v_[-1].reshape(1, -1))[0]
+
+    # # #     # Convert to extrinsic coordinates
+    # # #     X_extrinsic = self._spherical_to_cartesian(X)
+    # # #     if X_extrinsic.shape[1] < self._n_features:
+    # # #         # Map to the original dimension
+    # # #         vs = reversed(self.v_[: self._n_features - n - 1])
+    # # #         rs = reversed(self.r_[: self._n_features - n - 1])
+    # # #         for v, r in zip(vs, rs):
+    # # #             X_extrinsic = reconstruct(X_extrinsic, v, r)
+    # # #     else:
+    # # #         pass
+    # # #         # Data is already in original coordinates. Just rotate by v.
+
+    # # #     # X[:, -1] += self._cartesian_to_spherical(self.v_[-1].reshape(1, -1))[0]
+    # # #     # X_extrinsic = self._spherical_to_cartesian(X)
+
+    # # #     # if X_extrinsic.shape[1] == self._n_features:
+    # # #     #     # Data is already in original coordinates.
+    # # #     #     # Just rotate by v.
+    # # #     #     X_extrinsic, _ = _rotate(X_extrinsic, self.v_[0])
+    # # #     # else:
+    # # #     #     # Map to the original dimension
+    # # #     #     vs = reversed(self.v_[: self._n_features - n - 1])
+    # # #     #     rs = reversed(self.r_[: self._n_features - n - 1])
+    # # #     #     for v, r in zip(vs, rs):
+    # # #     #         X_extrinsic = reconstruct(X_extrinsic, v, r)
+    # # #     # return X_extrinsic
+
+    # # # def _spherical_to_cartesian(self, thetas):
+    # # #     N, dim = thetas.shape
+    # # #     n = dim + 1
+    # # #     X = np.zeros((N, n))
+    # # #     X[:, 0] = np.cos(thetas[:, 0])
+    # # #     for i in range(1, n - 1):
+    # # #         X[:, i] = np.prod(np.sin(thetas[:, :i]), axis=1) * np.cos(thetas[:, i])
+    # # #     X[:, -1] = np.prod(np.sin(thetas), axis=1)
+    # # #     return X
+
+    # # # def _cartesian_to_spherical(self, X):
+    # # #     N, n = X.shape
+    # # #     thetas = np.zeros((N, n - 1))
+    # # #     for i in range(n - 2):
+    # # #         denom = np.prod(np.sin(thetas[:, :i]), axis=1) if i > 0 else 1.0
+    # # #         arg = np.clip(X[:, i] / denom, -1.0, 1.0)
+    # # #         thetas[:, i] = np.arccos(arg)
+    # # #     thetas[:, -1] = np.arctan2(X[:, -1], X[:, -2])
+    # # #     return thetas

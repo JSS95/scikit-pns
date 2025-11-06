@@ -31,9 +31,9 @@ def pss(x, tol=1e-3):
     Returns
     -------
     v : (d+1,) real array
-        Principal axis of the subsphere.
-    r : scalar
-        Principal geodesic distance.
+        Estimated principal axis of the subsphere in extrinsic coordinates.
+    r : scalar in [0, pi]
+        Geodesic distance from the pole by *v* to the estimated principal subsphere.
 
     See Also
     --------
@@ -97,7 +97,7 @@ def _rotate(pts, v):
 
 
 def proj(x, v, r):
-    """Minimum-geodesic projection of points to subsphere.
+    """Minimum-geodesic projection of points to a subsphere.
 
     Parameters
     ----------
@@ -131,8 +131,8 @@ def proj(x, v, r):
     ... ax.scatter(*x.T, marker="x")
     ... ax.scatter(*A.T, marker=".")
     """
-    geod = np.arccos(x @ v)[..., np.newaxis]
-    return (np.sin(r) * x + np.sin(geod - r) * v) / np.sin(geod)
+    rho = np.arccos(x @ v)[..., np.newaxis]
+    return (np.sin(r) * x + np.sin(rho - r) * v) / np.sin(rho)
 
 
 def _R(v):
@@ -241,7 +241,7 @@ def reconstruct(x, v, r):
     """
     R = _R(v)
     vec = np.hstack([np.sin(r) * x, np.full(len(x), np.cos(r)).reshape(-1, 1)])
-    return (R.T @ vec.T).T
+    return vec @ R
 
 
 def from_unit_sphere(x, v, r):
@@ -250,23 +250,57 @@ def from_unit_sphere(x, v, r):
 
 
 def pns(x, tol=1e-3):
-    """Principal nested spheres analysis.
+    r"""Principal nested spheres analysis.
 
     Parameters
     ----------
     x : (N, d+1) real array
-        Data on d-sphere.
+        Data on d-sphere :math:`S^d \subset \mathbb{R}^{d+1}`.
     tol : float, default=1e-3
         Convergence tolerance in radian.
 
     Yields
     ------
     v : (d+1-i,) real array
-        Principal axis.
+        Estimated principal axis :math:`\hat{v}`.
     r : scalar
-        Principal geodesic distance.
+        Estimated principal geodesic distance :math:`\hat{r}`.
     x : (N, d-i) real array
-        Data transformed onto low-dimensional unit hypersphere.
+        Transformed data :math:`x^\dagger` on low-dimensional unit hypersphere.
+
+    Notes
+    -----
+    Let :math:`k = 1, \ldots, d-1`.
+    The entire :math:`\hat{v}` are
+
+    .. math::
+
+        \hat{v}_{1} \in S^{d} \subset \mathbb{R}^{d+1},\quad
+        \ldots,\quad
+        \hat{v}_{k} \in S^{d-k+1} \subset \mathbb{R}^{d-k+2},\quad
+        \ldots,\quad
+        \hat{v}_{d} \in S^{1} \subset \mathbb{R}^{2},
+
+    the entire :math:`\hat{r}` are
+
+    .. math::
+
+        \hat{r}_{1},\quad
+        \ldots,\quad
+        \hat{r}_{d} \in \mathbb{R},
+
+    and the transformed data are
+
+    .. math::
+
+        x^\dagger_{1} \in S^{d-1} \subset \mathbb{R}^{d},\quad
+        \ldots,\quad
+        x^\dagger_{k} \in S^{d-k} \subset \mathbb{R}^{d-k+1},\quad
+        \ldots,\quad
+        x^\dagger_{d} \subset \mathbb{R},
+
+    Note that the results from the last iteration are specially handled,
+    as described in the original paper.
 
     Examples
     --------
@@ -298,7 +332,7 @@ def pns(x, tol=1e-3):
 
 
 def residual(x, v, r):
-    """Signed residuals from dimension reduction to subsphere.
+    """Signed residuals caused by projecting data to a subsphere.
 
     Parameters
     ----------
@@ -344,7 +378,8 @@ def residual(x, v, r):
     elif D == 2:
         xi = np.arctan2(x @ (v @ [[0, 1], [-1, 0]]), x @ v)
     else:
-        xi = np.arccos(np.dot(x, v.T)) - r
+        rho = np.arccos(np.dot(x, v.T))
+        xi = rho - r
     return xi
 
 

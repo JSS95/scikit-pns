@@ -12,7 +12,7 @@ __all__ = [
 
 
 def circular_data(dim=3):
-    """Circular data in 3D, or its embedding in 2D.
+    """Circular data on a 3D unit sphere, or its embedding in 2D.
 
     Parameters
     ----------
