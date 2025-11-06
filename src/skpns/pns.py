@@ -60,7 +60,7 @@ def pss(x, tol=1e-3):
     if D <= 1:
         raise ValueError("Data must be on at least 1-sphere.")
     elif D == 2:
-        r = 0
+        r = np.int_(0)
         v = np.mean(x, axis=0)
         v /= np.linalg.norm(v)
     else:
@@ -266,7 +266,7 @@ def pns(x, tol=1e-3):
 
     Yields
     ------
-    v : 1-D ndarray
+    v : (d+1-i,) real array
         Principal axis.
     r : scalar
         Principal geodesic distance.
@@ -278,13 +278,16 @@ def pns(x, tol=1e-3):
     >>> from skpns.pns import pns, reconstruct
     >>> from skpns.util import circular_data, unit_sphere, circle
     >>> x = circular_data()
-    >>> v, r, A = next(pns(x))
+    >>> pns_gen = pns(x)
+    >>> v1, r1, A1 = next(pns_gen)
+    >>> v2, r2, A2 = next(pns_gen)
     >>> import matplotlib.pyplot as plt  # doctest: +SKIP
     ... ax = plt.figure().add_subplot(projection='3d', computed_zorder=False)
     ... ax.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
     ... ax.scatter(*x.T, marker=".")
-    ... ax.scatter(*reconstruct(A, v, r).T, marker="x")
-    ... ax.plot(*circle(v, r), color="tab:red")
+    ... ax.scatter(*reconstruct(A1, v1, r1).T, marker="x")
+    ... ax.scatter(*reconstruct(reconstruct(A2, v2, r2), v1, r1).T, zorder=10)
+    ... ax.plot(*circle(v1, r1), color="tab:red")
     """
     d = x.shape[1] - 1
 
@@ -300,7 +303,7 @@ def pns(x, tol=1e-3):
 
 
 def residual(x, v, r):
-    """Signed residuals of dimension reduction to subsphere.
+    """Signed residuals from dimension reduction to subsphere.
 
     Parameters
     ----------
