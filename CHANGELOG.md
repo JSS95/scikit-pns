@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.2.0] - UNRELEASED
 
+### Added
+
+- `IntrinsicPNS` class is added.
+
 ### Changed
 
 - `PNS()` is renamed to `ExtrinsicPNS()`. Old name is still supported as alias.

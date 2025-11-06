@@ -161,6 +161,13 @@ PNS = ExtrinsicPNS
 class IntrinsicPNS(TransformerMixin, BaseEstimator):
     r"""Principal nested spheres (PNS) analysis with intrinsic coordinates.
 
+    Reduces the dimensionality of data on a high-dimensional hypersphere
+    while preserving its spherical geometry.
+
+    The resulting data are represented by intrinsic coordinates.
+    For example, `n_components=2` transforms data onto the surface of a 3D sphere,
+    represented by spherical coordinates.
+
     The transformed data are in hyperspherical coordinates, with the range of angles in
     each dimension being
 
@@ -170,19 +177,29 @@ class IntrinsicPNS(TransformerMixin, BaseEstimator):
 
     Parameters
     ----------
-    n_components : int, default=2
+    n_components : int, default=None
         Number of components to keep.
         Data are transformed onto a unit hypersphere in this dimension, embedded in
         `n_components + 1` dimensions.
+        If None, all components are kept.
     tol : float, default=1e-3
         Optimization tolerance.
+
+    Attributes
+    ----------
+    embedding_ : ndarray of shape (n_samples, n_components)
+        Stores the embedding vectors.
+    v_ : list of (n_features - 1) arrays
+        Principal directions of nested spheres.
+    r_ : ndarray of shape (n_features - 1,)
+        Principal radii of nested spheres.
 
     Examples
     --------
     >>> from skpns import IntrinsicPNS
     >>> from skpns.util import circular_data, unit_sphere
     >>> X = circular_data()
-    >>> pns = IntrinsicPNS(n_components=2)
+    >>> pns = IntrinsicPNS()
     >>> X_transformed = pns.fit_transform(X)
     >>> import matplotlib.pyplot as plt
     ... fig = plt.figure()
@@ -195,7 +212,7 @@ class IntrinsicPNS(TransformerMixin, BaseEstimator):
     ... ax2.scatter(*X_transformed.T, c=X_transformed[:, -1])
     """
 
-    def __init__(self, n_components=2, tol=1e-3):
+    def __init__(self, n_components=None, tol=1e-3):
         self.n_components = n_components
         self.tol = tol
 
@@ -210,6 +227,8 @@ class IntrinsicPNS(TransformerMixin, BaseEstimator):
         residuals = []
         for _ in range(self._n_features - 2):
             v, r = pss(X, self.tol)
+            self.v_.append(v)
+            self.r_.append(r)
 
             # Projection
             geod = np.arccos(X @ v)[..., np.newaxis]
@@ -219,6 +238,8 @@ class IntrinsicPNS(TransformerMixin, BaseEstimator):
 
         # deal with the last dimension
         v, r = pss(X, self.tol)
+        self.v_.append(v)
+        self.r_.append(r)
         residuals.append(np.arctan2(X @ (v @ [[0, 1], [-1, 0]]), X @ v).reshape(-1, 1))
         self.embedding_ = np.concatenate(residuals, axis=-1)[:, -self.n_components :]
 
