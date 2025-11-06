@@ -3,7 +3,7 @@
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 
-from .pns import embed, pns, proj, reconstruct
+from .pns import embed, pns, proj, pss, reconstruct
 
 __all__ = [
     "ExtrinsicPNS",
@@ -199,16 +199,36 @@ class IntrinsicPNS(TransformerMixin, BaseEstimator):
         self.n_components = n_components
         self.tol = tol
 
-    def fit(self, X, y=None):
+    def _fit_transform(self, X):
+        if self.n_components is None:
+            self.n_components = X.shape[1] - 1
+
         self._n_features = X.shape[1]
         self.v_ = []
         self.r_ = []
 
-        pns_ = pns(X, self.tol)
-        for v, r, X in pns_:
-            self.v_.append(v)
-            self.r_.append(r)
+        residuals = []
+        for _ in range(self._n_features - 2):
+            v, r = pss(X, self.tol)
+
+            # Projection
+            geod = np.arccos(X @ v)[..., np.newaxis]
+            A = (np.sin(r) * X + np.sin(geod - r) * v) / np.sin(geod)
+            residuals.append(geod - r)
+            X = embed(A, v, r)
+
+        # deal with the last dimension
+        v, r = pss(X, self.tol)
+        residuals.append(np.arctan2(X @ (v @ [[0, 1], [-1, 0]]), X @ v).reshape(-1, 1))
+        self.embedding_ = np.concatenate(residuals, axis=-1)[:, -self.n_components :]
+
+    def fit(self, X, y=None):
+        self._fit_transform(X)
         return self
+
+    def fit_transform(self, X, y=None):
+        self._fit_transform(X)
+        return self.embedding_
 
     def transform(self, X, y=None):
         if X.shape[1] != self._n_features:
@@ -233,7 +253,3 @@ class IntrinsicPNS(TransformerMixin, BaseEstimator):
 
         residuals = np.concatenate(residuals, axis=-1)
         return residuals[:, -self.n_components :]
-
-    def fit_transform(self, X, y=None):
-        # TODO: make this more efficient
-        return self.fit(X).transform(X)
