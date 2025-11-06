@@ -1,7 +1,4 @@
-"""
-Utilities
----------
-"""
+"""Utility functions for data generation and transformation."""
 
 import numpy as np
 

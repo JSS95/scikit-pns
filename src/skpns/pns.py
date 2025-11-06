@@ -1,9 +1,4 @@
-"""
-PNS
----
-
-Functions for principal nested spheres analysis.
-"""
+"""Functions for principal nested spheres analysis."""
 
 import numpy as np
 from scipy.optimize import least_squares

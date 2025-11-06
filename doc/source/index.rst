@@ -57,11 +57,20 @@ PNS can be converted to ONNX and saved.
 Module reference
 ================
 
+High-level API
+--------------
+
 .. automodule:: skpns
     :members:
 
+Low-level functions
+-------------------
+
 .. automodule:: skpns.pns
     :members:
+
+Utilities
+---------
 
 .. automodule:: skpns.util
     :members:
