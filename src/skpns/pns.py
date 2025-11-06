@@ -189,10 +189,10 @@ def embed(x, v, r):
     >>> import matplotlib.pyplot as plt  # doctest: +SKIP
     ... fig = plt.figure()
     ... ax1 = fig.add_subplot(121, projection='3d', computed_zorder=False)
-    ... ax2 = fig.add_subplot(122)
     ... ax1.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
     ... ax1.scatter(*x.T, marker="x")
     ... ax1.scatter(*A.T, marker=".", zorder=10)
+    ... ax2 = fig.add_subplot(122)
     ... ax2.scatter(*x_low.T, marker="x")
     ... ax2.scatter(*A_low.T, marker=".", zorder=10)
     ... ax2.set_aspect("equal")
@@ -238,9 +238,9 @@ def reconstruct(x, v, r):
     >>> import matplotlib.pyplot as plt  # doctest: +SKIP
     ... fig = plt.figure()
     ... ax1 = fig.add_subplot(121)
-    ... ax2 = fig.add_subplot(122, projection='3d', computed_zorder=False)
     ... ax1.scatter(*x.T)
     ... ax1.set_aspect("equal")
+    ... ax2 = fig.add_subplot(122, projection='3d', computed_zorder=False)
     ... ax2.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
     ... ax2.scatter(*x_high.T)
     """
@@ -317,7 +317,31 @@ def residual(x, v, r):
     Returns
     -------
     xi : (N,) array
-        Signed residual.
+        Signed residuals.
+
+    Examples
+    --------
+    >>> from skpns.pns import pns, reconstruct, residual
+    >>> from skpns.util import circular_data, unit_sphere, circle
+    >>> x = circular_data()
+    >>> pns_gen = pns(x)
+    >>> v1, r1, A1 = next(pns_gen)
+    >>> res1 = residual(x, v1, r1)
+    >>> v2, r2, A2 = next(pns_gen)
+    >>> res2 = residual(A1, v2, r2)
+    >>> import matplotlib.pyplot as plt  # doctest: +SKIP
+    ... fig = plt.figure()
+    ... ax1 = fig.add_subplot(121, projection='3d', computed_zorder=False)
+    ... ax1.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
+    ... ax1.scatter(*x.T, c=res2)
+    ... ax1.plot(*circle(v1, r1), color="tab:red")
+    ... ax1.scatter(*reconstruct(reconstruct(A2, v2, r2), v1, r1).T, color="tab:red")
+    ... ax2 = fig.add_subplot(122)
+    ... ax2.set_xlim(-np.pi/2, np.pi/2)
+    ... ax2.set_ylim(-np.pi, np.pi)
+    ... ax2.scatter(res1, res2, c=res2)
+    ... ax2.axvline(0, color="tab:red")
+    ... ax2.scatter(0, 0, color="tab:red")
     """
     _, D = x.shape
     if D <= 1:
