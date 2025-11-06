@@ -14,12 +14,12 @@ from skl2onnx.algebra.onnx_ops import (
 from .pns import _R
 
 __all__ = [
-    "pns_shape_calculator",
-    "pns_converter",
+    "extrinsicpns_shape_calculator",
+    "extrinsicpns_converter",
 ]
 
 
-def pns_shape_calculator(operator):
+def extrinsicpns_shape_calculator(operator):
     op = operator.raw_operator
     input_type = operator.inputs[0].type.__class__
     input_dim = operator.inputs[0].get_first_dimension()
@@ -27,7 +27,7 @@ def pns_shape_calculator(operator):
     operator.outputs[0].type = output_type
 
 
-def pns_converter(scope, operator, container):
+def extrinsicpns_converter(scope, operator, container):
     op = operator.raw_operator
     opv = container.target_opset
     out = operator.outputs

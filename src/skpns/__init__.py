@@ -4,18 +4,24 @@
        "Analysis of principal nested spheres." Biometrika 99.3 (2012): 551-568.
 """
 
-from .sklearn import PNS
+from .sklearn import PNS, ExtrinsicPNS
 
 __all__ = [
+    "ExtrinsicPNS",
     "PNS",
 ]
 
 try:
     from skl2onnx import update_registered_converter
 
-    from .onnx import pns_converter, pns_shape_calculator
+    from .onnx import extrinsicpns_converter, extrinsicpns_shape_calculator
 
-    update_registered_converter(PNS, "SkpnsPNS", pns_shape_calculator, pns_converter)
+    update_registered_converter(
+        ExtrinsicPNS,
+        "SkpnsExtrinsicPNS",
+        extrinsicpns_shape_calculator,
+        extrinsicpns_converter,
+    )
 
 except ModuleNotFoundError:
     pass

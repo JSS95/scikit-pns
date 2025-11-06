@@ -5,20 +5,26 @@ from sklearn.base import BaseEstimator, TransformerMixin
 from .pns import embed, pns, proj, reconstruct
 
 __all__ = [
+    "ExtrinsicPNS",
     "PNS",
 ]
 
 
-class PNS(TransformerMixin, BaseEstimator):
-    """Transform to PNS with extrinsic coordinates.
+class ExtrinsicPNS(TransformerMixin, BaseEstimator):
+    """Principal nested spheres (PNS) analysis with extrinsic coordinates.
+
+    Reduces the dimensionality of data on a high-dimensional unit hypersphere
+    while preserving its spherical geometry.
+
+    The resulting data is represented by extrinsic coordinates.
+    For example, `n_components=2` transforms data onto a 2D unit circle,
+    represented by x and y coordinates.
 
     Parameters
     ----------
     n_components : int, default=2
         Number of components to keep.
-        Data are transformed onto unit hypersphere embedded in this dimension.
-        For example, 'n_components=2' transforms data onto a 2D unit circle,
-        represented by x and y coordinates.
+        Data is transformed onto a unit hypersphere embedded in this dimensional space.
     tol : float, default=1e-3
         Optimization tolerance.
 
@@ -33,12 +39,21 @@ class PNS(TransformerMixin, BaseEstimator):
 
     Examples
     --------
-    >>> from skpns import PNS
-    >>> from skpns.util import circular_data
-    >>> X = PNS(n_components=2).fit_transform(circular_data())
+    >>> from skpns import ExtrinsicPNS
+    >>> from skpns.util import circular_data, unit_sphere
+    >>> X = circular_data()
+    >>> pns = ExtrinsicPNS(n_components=2)
+    >>> X_reduced = pns.fit_transform(X)
+    >>> X_inv = pns.inverse_transform(X_reduced)
     >>> import matplotlib.pyplot as plt  # doctest: +SKIP
-    ... plt.plot(*X.T, "x")
-    ... plt.gca().set_aspect("equal")
+    ... fig = plt.figure()
+    ... ax1 = fig.add_subplot(121, projection='3d', computed_zorder=False)
+    ... ax1.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
+    ... ax1.scatter(*X_inv.T, zorder=10)
+    ... ax1.scatter(*X.T)
+    ... ax2 = fig.add_subplot(122)
+    ... ax2.scatter(*X_reduced.T)
+    ... ax2.set_aspect('equal')
     """
 
     def __init__(self, n_components=2, tol=1e-3):
@@ -59,7 +74,7 @@ class PNS(TransformerMixin, BaseEstimator):
         self.embedding_ = X
 
     def fit(self, X, y=None):
-        """Find principal nested spheres for data X.
+        """Find principal nested spheres for the data X.
 
         Parameters
         ----------
@@ -77,7 +92,7 @@ class PNS(TransformerMixin, BaseEstimator):
         return self
 
     def fit_transform(self, X, y=None):
-        """Fit the model from data in X and transform X.
+        """Fit the model with data in X and transform X.
 
         Parameters
         ----------
@@ -118,8 +133,8 @@ class PNS(TransformerMixin, BaseEstimator):
             X = embed(A, v, r)
         return X
 
-    def to_hypersphere(self, X):
-        """Transform the low-dimensional data into the original hypersphere.
+    def inverse_transform(self, X):
+        """Transform the low-dimensional data back to the original hypersphere.
 
         Parameters
         ----------
@@ -132,3 +147,10 @@ class PNS(TransformerMixin, BaseEstimator):
         for v, r in zip(reversed(self.v_), reversed(self.r_)):
             X = reconstruct(X, v, r)
         return X
+
+    def to_hypersphere(self, X):
+        """alias of :meth:`inverse_transform`"""
+        return self.inverse_transform(X)
+
+
+PNS = ExtrinsicPNS

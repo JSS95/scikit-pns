@@ -197,7 +197,7 @@ def embed(x, v, r):
 
 
 def to_unit_sphere(x, v, r):
-    """Alias of :func:`embed`."""
+    """alias of :func:`embed`."""
     return embed(x, v, r)
 
 
@@ -245,7 +245,7 @@ def reconstruct(x, v, r):
 
 
 def from_unit_sphere(x, v, r):
-    """Alias of :func:`reconstruct`."""
+    """alias of :func:`reconstruct`."""
     return reconstruct(x, v, r)
 
 

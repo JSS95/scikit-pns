@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `PNS()` is renamed to `ExtrinsicPNS()`. Old name is still supported as alias.
+- `PNS.to_hypersphere()` is renamed to `PNS.inverse_transform()`. Old name is still supported as alias.
+
 - `pns.to_unit_sphere()` is renamed to `embed()`. Old name is still supported as alias.
 - `pns.from_unit_sphere()` is renamed to `reconstruct()`. Old name is still supported as alias.
 
