@@ -150,27 +150,33 @@ def _R(v):
 
 
 def embed(x, v, r):
-    """Embed data on a hypersphere to a sub-hypersphere.
+    r"""Embed data on a sub-hypersphere to a low-dimensional unit hypersphere.
 
     Parameters
     ----------
-    x : (N, d+1) real array
-        Data on a hypersphere.
-    v : (d+1,) real array
+    x : (N, m+1) real array
+        Data :math:`x \in A_{m-1} \subset S^m \subset \mathbb{R}^{m+1}`,
+        on a subsphere :math:`A_{m-1}` of a unit hypersphere :math:`S^m`.
+    v : (m+1,) real array
         Sub-hypersphere axis.
     r : scalar
         Sub-hypersphere geodesic distance.
 
     Returns
     -------
-    (N, d) real array
-        Data on a sub-hypersphere.
+    (N, m) real array
+        Data on a low-dimensional unit hypersphere :math:`S^{m-1}`.
 
     See Also
     --------
     pss : Find *v* and *r* for the principal subsphere.
     proj : Project data on a principal subsphere.
     reconstruct : Inverse operation of this function.
+
+    Notes
+    -----
+    This is the function :math:`x^\dagger = f_k(x; v_k, r_k) \in S^{d-k}`
+    in the original paper, where :math:`m = d-k+1`.
 
     Examples
     --------
@@ -179,16 +185,13 @@ def embed(x, v, r):
     >>> x = circular_data()
     >>> v, r = pss(x)
     >>> A = proj(x, v, r)
-    >>> x_low = embed(x, v, r)
     >>> A_low = embed(A, v, r)
     >>> import matplotlib.pyplot as plt  # doctest: +SKIP
     ... fig = plt.figure()
     ... ax1 = fig.add_subplot(121, projection='3d', computed_zorder=False)
     ... ax1.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
-    ... ax1.scatter(*x.T, marker="x")
     ... ax1.scatter(*A.T, marker=".", zorder=10)
     ... ax2 = fig.add_subplot(122)
-    ... ax2.scatter(*x_low.T, marker="x")
     ... ax2.scatter(*A_low.T, marker=".", zorder=10)
     ... ax2.set_aspect("equal")
     """
