@@ -53,7 +53,7 @@ def pss(x, tol=1e-3):
     >>> import matplotlib.pyplot as plt  # doctest: +SKIP
     ... ax = plt.figure().add_subplot(projection='3d', computed_zorder=False)
     ... ax.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
-    ... ax.scatter(*x.T, marker=".")
+    ... ax.scatter(*x.T, marker="x")
     ... ax.scatter(*v)
     """
     _, D = x.shape
@@ -133,8 +133,8 @@ def proj(x, v, r):
     >>> import matplotlib.pyplot as plt  # doctest: +SKIP
     ... ax = plt.figure().add_subplot(projection='3d', computed_zorder=False)
     ... ax.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
-    ... ax.scatter(*x.T, marker=".")
-    ... ax.scatter(*A.T, marker="x")
+    ... ax.scatter(*x.T, marker="x")
+    ... ax.scatter(*A.T, marker=".")
     """
     geod = np.arccos(x @ v)[..., np.newaxis]
     return (np.sin(r) * x + np.sin(geod - r) * v) / np.sin(geod)
@@ -155,52 +155,103 @@ def _R(v):
 
 
 def embed(x, v, r):
-    """Transform projected data on subsphere to unit hypersphere.
+    """Embed data on a hypersphere to a sub-hypersphere.
 
     Parameters
     ----------
     x : (N, d+1) real array
-        Data projected on subsphere.
+        Data on a hypersphere.
     v : (d+1,) real array
-        Subsphere axis.
+        Sub-hypersphere axis.
     r : scalar
-        Subsphere geodesic distance.
+        Sub-hypersphere geodesic distance.
 
     Returns
     -------
     (N, d) real array
-        Data points on unit hypersphere.
+        Data on a sub-hypersphere.
+
+    See Also
+    --------
+    pss : Find *v* and *r* for the principal subsphere.
+    proj : Project data on a principal subsphere.
+    reconstruct : Inverse operation of this function.
+
+    Examples
+    --------
+    >>> from skpns.pns import pss, proj, embed
+    >>> from skpns.util import circular_data, unit_sphere
+    >>> x = circular_data()
+    >>> v, r = pss(x)
+    >>> A = proj(x, v, r)
+    >>> x_low = embed(x, v, r)
+    >>> A_low = embed(A, v, r)
+    >>> import matplotlib.pyplot as plt  # doctest: +SKIP
+    ... fig = plt.figure()
+    ... ax1 = fig.add_subplot(121, projection='3d', computed_zorder=False)
+    ... ax2 = fig.add_subplot(122)
+    ... ax1.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
+    ... ax1.scatter(*x.T, marker="x")
+    ... ax1.scatter(*A.T, marker=".", zorder=10)
+    ... ax2.scatter(*x_low.T, marker="x")
+    ... ax2.scatter(*A_low.T, marker=".", zorder=10)
+    ... ax2.set_aspect("equal")
     """
     R = _R(v)
     return x @ (1 / np.sin(r) * R[:-1:, :]).T
 
 
-to_unit_sphere = embed
+def to_unit_sphere(x, v, r):
+    """Alias of :func:`embed`."""
+    return embed(x, v, r)
 
 
 def reconstruct(x, v, r):
-    """Transform data on unit hypersphere to projected data on subsphere.
+    """Reconstruct data on a sub-hypersphere to a hypersphere.
 
     Parameters
     ----------
     x : (N, d) real array
-        Data points on unit hypersphere.
+        Data on a sub-hypersphere.
     v : (d+1,) real array
-        Subsphere axis.
+        Sub-hypersphere axis.
     r : scalar
-        Subsphere geodesic distance.
+        Sub-hypersphere geodesic distance.
 
     Returns
     -------
     (N, d+1) real array
-        Data projected on subsphere.
+        Data on a hypersphere.
+
+    See Also
+    --------
+    embed : Inverse operation of this function.
+
+    Examples
+    --------
+    >>> from skpns.pns import reconstruct
+    >>> from skpns.util import circular_data, unit_sphere
+    >>> x = circular_data(dim=2)
+    >>> v = np.array([1 / np.sqrt(3), -1 / np.sqrt(3), 1 / np.sqrt(3)])
+    >>> r = 0.15 * np.pi
+    >>> x_high = reconstruct(x, v, r)
+    >>> import matplotlib.pyplot as plt  # doctest: +SKIP
+    ... fig = plt.figure()
+    ... ax1 = fig.add_subplot(121)
+    ... ax2 = fig.add_subplot(122, projection='3d', computed_zorder=False)
+    ... ax1.scatter(*x.T)
+    ... ax1.set_aspect("equal")
+    ... ax2.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
+    ... ax2.scatter(*x_high.T)
     """
     R = _R(v)
     vec = np.hstack([np.sin(r) * x, np.full(len(x), np.cos(r)).reshape(-1, 1)])
     return (R.T @ vec.T).T
 
 
-from_unit_sphere = reconstruct
+def from_unit_sphere(x, v, r):
+    """Alias of :func:`reconstruct`."""
+    return reconstruct(x, v, r)
 
 
 def pns(x, tol=1e-3):
