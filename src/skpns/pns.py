@@ -165,7 +165,7 @@ def embed(x, v, r):
     Returns
     -------
     (N, m) real array
-        Data on a low-dimensional unit hypersphere :math:`S^{m-1}`.
+        Data :math:`x^\dagger` on a low-dimensional unit hypersphere :math:`S^{m-1}`.
 
     See Also
     --------
@@ -205,25 +205,31 @@ def to_unit_sphere(x, v, r):
 
 
 def reconstruct(x, v, r):
-    """Reconstruct data on a sub-hypersphere to a hypersphere.
+    r"""Reconstruct data on a low-dimensional unit hypersphere. to a sub-hypersphere.
 
     Parameters
     ----------
-    x : (N, d) real array
-        Data on a sub-hypersphere.
-    v : (d+1,) real array
+    x : (N, m) real array
+        Data :math:`x^\dagger` on a low-dimensional unit hypersphere :math:`S^{m-1}`.
+    v : (m+1,) real array
         Sub-hypersphere axis.
     r : scalar
         Sub-hypersphere geodesic distance.
 
     Returns
     -------
-    (N, d+1) real array
-        Data on a hypersphere.
+    (N, m+1) real array
+        Data :math:`x \in A_{m-1} \subset S^m \subset \mathbb{R}^{m+1}`,
+        on a subsphere :math:`A_{m-1}` of a unit hypersphere :math:`S^m`.
 
     See Also
     --------
     embed : Inverse operation of this function.
+
+    Notes
+    -----
+    This is the function :math:`x = f_k^{-1}(x^\dagger; v_k, r_k) \in A_{d-k}`
+    in the original paper, where :math:`m = d-k+1`.
 
     Examples
     --------
@@ -335,7 +341,7 @@ def pns(x, tol=1e-3):
 
 
 def residual(x, v, r):
-    """Signed residuals caused by projecting data to a subsphere.
+    r"""Signed residuals caused by projecting data to a subsphere.
 
     Parameters
     ----------
@@ -350,6 +356,10 @@ def residual(x, v, r):
     -------
     xi : (N,) array
         Signed residuals.
+
+    Notes
+    -----
+    This is the signed (unscaled) residual :math:`\xi` in the original paper.
 
     Examples
     --------
