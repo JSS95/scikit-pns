@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from .pns import _R
+from .pns import embed, proj
 
 __all__ = [
     "circular_data",
@@ -12,7 +12,7 @@ __all__ = [
 
 
 def circular_data(dim=3):
-    """Circular data on a 3D unit sphere, or its embedding in 2D.
+    """Circular data on a 3D unit sphere, or its projection to 2D unit sphere.
 
     Parameters
     ----------
@@ -52,10 +52,9 @@ def circular_data(dim=3):
     if dim == 3:
         pass
     elif dim == 2:
-        # Embed data in 2D
-        R = _R(v)
         r = np.mean(t)
-        x = x @ (1 / np.sin(r) * R[:-1:, :]).T
+        A = proj(x, v, r)
+        x = embed(A, v, r)
     else:
         raise ValueError("Invalid dimension.")
     return x

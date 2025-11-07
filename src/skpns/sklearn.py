@@ -236,29 +236,18 @@ class IntrinsicPNS(TransformerMixin, BaseEstimator):
     #         X = embed(A, v, r)
     #     # deal with the last dimension
     #     v, r = pss(X, self.tol)
-    #     self.v_.append(v)  # elements: v1, v2, ..., 
+    #     self.v_.append(v)  # elements: v1, v2, ...,
     #     self.r_.append(r)
     #     residuals.append(np.arctan2(X @ (v @ [[0, 1], [-1, 0]]), X @ v).reshape(-1, 1))
-
-
-
-
 
     #     # Scale residuals: Xi(d-k) = prod(sin(r_i))_{i=1}^{k-1} * xi(k)
     #     Xi = np.empty((len(X), d))
     #     sin_r = np.sin(self.r_)
 
     #     for k in range(d):
-    #         Xi[:, k] = 
-
+    #         Xi[:, k] =
 
     #     Xi[:, 0] = np.prod(sin_r[:1]) * residuals[-1]
-
-
-
-
-
-
 
     #     # residuals = np.flip(np.concatenate(residuals, axis=-1), axis=-1)
     #     # self.embedding_ = residuals[:, :self.n_components]
