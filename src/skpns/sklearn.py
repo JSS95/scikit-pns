@@ -298,3 +298,34 @@ class IntrinsicPNS(TransformerMixin, BaseEstimator):
                 f"Input extrinsic dimension {n + 1} is larger than "
                 f"fitted dimension {self._n_features}."
             )
+
+        # Each row in Xi is Xi(0), ..., Xi(d-k) where k=d-n+1.
+        # xi(d-k) = Xi(d-k) / prod_{k=1}^{k-1}(sin(r_k)).
+        # Thus, xi(d-1) = Xi(d-1) and xi(0) = Xi(0) * (product of all sin(r_k))
+        sin_rs = np.sin(self.r_[:-1])
+        xi = Xi.copy()  # Order: xi(0), ..., xi(d-k)
+        prod_sin_r = np.prod(sin_rs)
+        for i in range(n - 1):
+            xi[:, i] /= prod_sin_r
+            prod_sin_r /= sin_rs[-i - 1]
+        # Perform modification of last axis outside of loop, since prod_sin_r need not
+        # be divided afterwards. (Prevents error when n=d)
+        xi[:, n - 1] /= prod_sin_r
+
+        # xi is spherical coordinates on unit hypersphere S^n.
+        # Convert it to cartesin coordinates x^\dagger \in R^{n+1}.
+        # Note that xi follows convention where the first coordinate is centered
+        # azimuthal angle in [-pi, pi] and the rest are centered elevation angle
+        # [-pi/2, pi/2].
+        phi = xi[:, 0]
+        elev = xi[:, 1:]  # shape (n_samples, n-1)
+        x_dagger = np.column_stack((np.cos(phi), np.sin(phi)))
+        for k in range(elev.shape[1] - 1, -1, -1):
+            e = elev[:, k]
+            x_dagger = np.concatenate(
+                (np.cos(e)[:, np.newaxis] * x_dagger, np.sin(e)[:, np.newaxis]), axis=1
+            )
+
+        # Finally, reconstruct x^\dagger onto the original hypersphere
+        # using a chain of f_{k}^{-1}.
+        ...
