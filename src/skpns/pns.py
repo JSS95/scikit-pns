@@ -39,6 +39,15 @@ def pss(x, tol=1e-3):
     --------
     proj : Project *x* onto the found principal subsphere.
 
+    Notes
+    -----
+    This function determines the best fitting subsphere
+    :math:`\hat{A}_{d-k} = A_{d-k}(\hat{v}_k, \hat{r}_k) \subset S^{d-k+1}` for
+    :math:`k = 1, 2, \ldots, d`.
+
+    The Fréchet mean :math:`\hat{A}_0` of the lowest level best fitting subsphere
+    :math:`\hat{A}_1` is also determined by this function.
+
     Examples
     --------
     >>> from skpns.pns import pss
