@@ -11,13 +11,15 @@ __all__ = [
 ]
 
 
-def circular_data(dim=3):
+def circular_data(dim=3, size="small"):
     """Circular data on a 3D unit sphere, or its projection to 2D unit sphere.
 
     Parameters
     ----------
     dim : {3, 2}
         Data dimension.
+    size : {"small", "large"}
+        Size of the circle around the 3D sphere.
 
     Returns
     -------
@@ -26,20 +28,26 @@ def circular_data(dim=3):
 
     Examples
     --------
+    Note how data occupy different scales in 3D, but their projection onto
+    each principal subsphere is identical.
+
     >>> from skpns.util import circular_data, unit_sphere
-    >>> x_3d = circular_data(3)
-    >>> x_2d = circular_data(2)
     >>> import matplotlib.pyplot as plt  # doctest: +SKIP
     ... fig = plt.figure()
     ... ax1 = fig.add_subplot(121, projection='3d', computed_zorder=False)
-    ... ax2 = fig.add_subplot(122)
     ... ax1.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
-    ... ax1.scatter(*x_3d.T, marker="x")
-    ... ax2.scatter(*x_2d.T, marker="x")
+    ... ax1.scatter(*circular_data(3, size="large").T, marker="x")
+    ... ax1.scatter(*circular_data(3, size="small").T, marker="x")
+    ... ax2 = fig.add_subplot(122)
+    ... ax2.scatter(*circular_data(2, size="large").T, marker="x")
+    ... ax2.scatter(*circular_data(2, size="small").T, marker="x")
     ... ax2.set_aspect("equal")
     """
     # 3D data around north pole
-    t = np.random.uniform(0.1 * np.pi, 0.2 * np.pi, 100)
+    if size == "small":
+        t = np.random.uniform(0.1 * np.pi, 0.2 * np.pi, 100)
+    elif size == "large":
+        t = np.random.uniform(0.4 * np.pi, 0.5 * np.pi, 100)
     p = np.random.uniform(0, 3 * np.pi / 2, 100)
     x = np.array([np.sin(t) * np.cos(p), np.sin(t) * np.sin(p), np.cos(t)]).T
     # Rotate data in altitude angle
