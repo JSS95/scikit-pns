@@ -10,8 +10,8 @@ __all__ = [
     "to_unit_sphere",
     "reconstruct",
     "from_unit_sphere",
-    "pns",
     "residual",
+    "pns",
     "Exp",
     "Log",
 ]
@@ -298,72 +298,6 @@ def from_unit_sphere(x, v, r):
     return reconstruct(x, v, r)
 
 
-def pns(x, tol=1e-3):
-    r"""Principal nested spheres analysis.
-
-    Parameters
-    ----------
-    x : (N, d+1) real array
-        Data on a d-sphere.
-    tol : float, default=1e-3
-        Convergence tolerance in radian.
-
-    Yields
-    ------
-    v : (d+1-i,) real array
-        Estimated principal axis :math:`\hat{v}`.
-    r : scalar
-        Estimated principal geodesic distance :math:`\hat{r}`.
-    xd : (N, d-i) real array
-        Transformed data :math:`x^\dagger` on low-dimensional unit hypersphere.
-
-    See Also
-    --------
-    reconstruct : Reconstruct the transformed data onto higher-dimensional spheres.
-
-    Notes
-    -----
-    The input data is :math:`x \in S^d \subset \mathbb{R}^{d+1}`.
-
-    At :math:`k`-th iteration for :math:`k=1, \ldots, d`, this generator yields:
-
-    1. The principal axis :math:`\hat{v}_{k} \in S^{d-k+1} \subset \mathbb{R}^{d-k+2}`,
-    2. The principal geodesic distance :math:`\hat{r}_k \in \mathbb{R}`, and
-    3. The embedded data :math:`x_k^\dagger \in S^{d-k} \subset \mathbb{R}^{d-k+1}`.
-
-    Data projected onto each principal nested sphere in the original space,
-    :math:`\hat{\mathfrak{A}}_{d-k} \subset S^d`,
-    can be found by recursively calling :func:`reconstruct` on :math:`x_k^\dagger`.
-
-    Examples
-    --------
-    >>> from skpns.pns import pns, reconstruct
-    >>> from skpns.util import circular_data, unit_sphere, circle
-    >>> x = circular_data()
-    >>> pns_gen = pns(x)
-    >>> v1, r1, xd1 = next(pns_gen)
-    >>> v2, r2, xd2 = next(pns_gen)
-    >>> import matplotlib.pyplot as plt  # doctest: +SKIP
-    ... ax = plt.figure().add_subplot(projection='3d', computed_zorder=False)
-    ... ax.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
-    ... ax.scatter(*x.T, marker=".")
-    ... ax.scatter(*reconstruct(xd1, v1, r1).T, marker="x")
-    ... ax.scatter(*reconstruct(reconstruct(xd2, v2, r2), v1, r1).T, zorder=10)
-    ... ax.plot(*circle(v1, r1), color="tab:red")
-    """
-    d = x.shape[1] - 1
-
-    for _ in range(1, d):
-        v, r = pss(x, tol)
-        A = proj(x, v, r)
-        x = embed(A, v, r)
-        yield v, r, x
-
-    v, r = pss(x, tol)
-    x = np.full((len(x), 1), 0, dtype=x.dtype)
-    yield v, r, x
-
-
 def residual(x, v, r):
     r"""Signed residuals caused by projecting data to a subsphere.
 
@@ -391,27 +325,21 @@ def residual(x, v, r):
 
     Examples
     --------
-    >>> from skpns.pns import pns, reconstruct, residual
+    >>> from skpns.pns import residual
     >>> from skpns.util import circular_data, unit_sphere, circle
     >>> x = circular_data()
-    >>> pns_gen = pns(x)
-    >>> v1, r1, xd1 = next(pns_gen)
-    >>> res1 = residual(x, v1, r1)
-    >>> v2, r2, xd2 = next(pns_gen)
-    >>> res2 = residual(xd1, v2, r2)
+    >>> v = np.array([1 / np.sqrt(3), -1 / np.sqrt(3), 1 / np.sqrt(3)])
+    >>> r = 0.15 * np.pi
+    >>> res = residual(x, v, r)
     >>> import matplotlib.pyplot as plt  # doctest: +SKIP
     ... fig = plt.figure()
     ... ax1 = fig.add_subplot(121, projection='3d', computed_zorder=False)
     ... ax1.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
-    ... ax1.scatter(*x.T, c=res2)
-    ... ax1.plot(*circle(v1, r1), color="tab:red")
-    ... ax1.scatter(*reconstruct(reconstruct(xd2, v2, r2), v1, r1).T, color="tab:red")
+    ... ax1.scatter(*x.T, c=res)
+    ... ax1.plot(*circle(v, r), color="tab:red")
     ... ax2 = fig.add_subplot(122)
-    ... ax2.set_xlim(-np.pi/2, np.pi/2)
-    ... ax2.set_ylim(-np.pi, np.pi)
-    ... ax2.scatter(res1, res2, c=res2)
-    ... ax2.axvline(0, color="tab:red")
-    ... ax2.scatter(0, 0, color="tab:red")
+    ... ax2.scatter(np.arange(len(res)), res, c=res)
+    ... ax2.axhline(0, color="tab:red")
     """
     _, D = x.shape
     if D <= 1:
@@ -421,6 +349,109 @@ def residual(x, v, r):
     else:
         rho = np.arccos(np.dot(x, v.T))
     return rho - r
+
+
+def pns(x, tol=1e-3, residual="none"):
+    r"""Principal nested spheres analysis.
+
+    Parameters
+    ----------
+    x : (N, d+1) real array
+        Data on a d-sphere.
+    tol : float, default=1e-3
+        Convergence tolerance in radians.
+    residual : {'none', 'scaled', 'unscaled'}
+        If 'none', do not yield residuals.
+        If 'scaled', yield scaled residuals :math:`\Xi`.
+        If 'unscaled', yield unscaled residuals :math:`\xi`.
+
+    Yields
+    ------
+    v : (d+1-i,) real array
+        Estimated principal axis :math:`\hat{v}`.
+    r : scalar
+        Estimated principal geodesic distance :math:`\hat{r}`.
+    xd : (N, d-i) real array
+        Transformed data :math:`x^\dagger` on low-dimensional unit hypersphere.
+    res : (N,) real array
+        Residuals. See the description of parameter *residual*.
+
+    See Also
+    --------
+    reconstruct : Reconstruct the transformed data onto higher-dimensional spheres.
+
+    Notes
+    -----
+    The input data is :math:`x \in S^d \subset \mathbb{R}^{d+1}`.
+
+    At :math:`k`-th iteration for :math:`k=1, \ldots, d`, this generator yields:
+
+    1. The principal axis :math:`\hat{v}_{k} \in S^{d-k+1} \subset \mathbb{R}^{d-k+2}`,
+    2. The principal geodesic distance :math:`\hat{r}_k \in \mathbb{R}`, and
+    3. The embedded data :math:`x_k^\dagger \in S^{d-k} \subset \mathbb{R}^{d-k+1}`.
+    4. (Optional) Scaled residual :math:`\Xi(d-k)`, or unscaled residual :math:`\xi_{d-k}`.
+
+    Data projected onto each principal nested sphere in the original space,
+    :math:`\hat{\mathfrak{A}}_{d-k} \subset S^d`,
+    can be found by recursively calling :func:`reconstruct` on :math:`x_k^\dagger`.
+
+    Examples
+    --------
+    >>> from skpns.pns import pns, reconstruct
+    >>> from skpns.util import circular_data, unit_sphere, circle
+    >>> x = circular_data()
+    >>> pns_gen = pns(x, residual="scaled")
+    >>> v1, r1, xd1, Xi1 = next(pns_gen)
+    >>> v2, r2, xd2, Xi2 = next(pns_gen)
+    >>> import matplotlib.pyplot as plt  # doctest: +SKIP
+    ... fig = plt.figure()
+    ... ax1 = fig.add_subplot(121, projection='3d', computed_zorder=False)
+    ... ax1.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
+    ... ax1.plot(*circle(v1, r1), color="tab:red")
+    ... ax1.scatter(*reconstruct(xd1, v1, r1).T, marker="x")
+    ... ax1.scatter(*reconstruct(reconstruct(xd2, v2, r2), v1, r1).T, zorder=10)
+    ... ax1.scatter(*x.T, c=Xi2)
+    ... ax2 = fig.add_subplot(122)
+    ... ax2.scatter(Xi2, Xi1, c=Xi2)
+    ... ax2.set_xlim(-np.pi, np.pi)
+    ... ax2.set_ylim(-np.pi/2, np.pi/2)
+    """
+    d = x.shape[1] - 1
+
+    sin_r = 1
+    for _ in range(1, d):  # k=1, ..., (d-1)
+        v, r = pss(x, tol)  # v_k, r_k
+        rho = np.arccos(x @ v)[..., np.newaxis]
+        P = (np.sin(r) * x + np.sin(rho - r) * v) / np.sin(rho)  # points on A_{d-k}
+        x_dagger = embed(P, v, r)
+
+        xi = rho - r  # xi_{d-k}
+        Xi = sin_r * xi  # Xi(d-k), i.e., Xi(d-1), ..., Xi(1)
+
+        if residual == "none":
+            ret = v, r, x_dagger
+        elif residual == "scaled":
+            ret = v, r, x_dagger, Xi
+        elif residual == "unscaled":
+            ret = v, r, x_dagger, xi
+        yield ret
+        x = x_dagger
+        sin_r *= np.sin(r)
+
+    # k=d
+    v, r = pss(x, tol)
+    rho = np.arctan2(x @ (v @ [[0, 1], [-1, 0]]), x @ v)
+    x_dagger = np.full((len(x), 1), 0, dtype=x.dtype)
+
+    xi = rho - r
+    Xi = sin_r * xi  # Xi(0)
+    if residual == "none":
+        ret = v, r, x_dagger
+    elif residual == "scaled":
+        ret = v, r, x_dagger, Xi
+    elif residual == "unscaled":
+        ret = v, r, x_dagger, xi
+    yield ret
 
 
 def Exp(z):
