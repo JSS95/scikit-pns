@@ -97,27 +97,48 @@ def _rotate(pts, v):
 
 
 def proj(x, v, r):
-    """Minimum-geodesic projection of points to a subsphere.
+    r"""Minimum-geodesic projection of points to a subsphere.
 
     Parameters
     ----------
-    x : (N, d+1) real array
+    x : (N, m+1) real array
         Extrinsic coordinates of data on a ``d``-dimensional hypersphere,
         embedded in a ``d+1``-dimensional space.
-    v : (d+1,) real array
+    v : (m+1,) real array
         Subsphere axis.
     r : scalar
         Subsphere geodesic distance.
 
     Returns
     -------
-    A : (N, d+1) real array
+    xP : (N, m+1) real array
         Extrinsic coordinates of data on a ``d``-dimensional hypersphere,
         projected onto the found principal subsphere.
 
     See Also
     --------
     pss : Find *v* and *r* for the principal subsphere.
+    embed : Reduce the number of components of the projected data by one.
+
+    Notes
+    -----
+    This is the function
+    :math:`P\{x; A_{d-k}(v_k, r_k)\}: S^{d-k+1} \to A_{d-k}(v_k, r_k)` for
+    :math:`k = 1, 2, \ldots, d-1` in the original paper.
+    Here, :math:`A_{d-k}(v_k, r_k) \subset S^{d-k+1}` is a subsphere of the hypersphere.
+    The input and output data dimension are :math:`m+1`, where :math:`m = d-k+1`.
+
+    Note that the projection at :math:`k=d` is not supported by this function.
+    This projection is trivial, as it collapses all points in :math:`S^1` to the
+    Fréchet mean.
+
+    This function projects the data onto any subsphere. To project to the principal
+    subsphere :math:`\hat{A}_{d-k} = A_{d-k}(\hat{v}_k, \hat{r}_k)`, pass the results
+    from :func:`pss`.
+
+    The resulting points have same number of components but their rank is reduced
+    by one in the manifold. Use :func:`embed` to further map
+    :math:`x^P \in A_{d-k}(v_k, r_k)` to :math:`S^{d-k}`.
 
     Examples
     --------
