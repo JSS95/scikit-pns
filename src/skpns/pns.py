@@ -18,7 +18,7 @@ __all__ = [
 
 
 def pss(x, tol=1e-3):
-    """Find the principal subsphere from data on a hypersphere.
+    r"""Find the principal subsphere from data on a hypersphere.
 
     Parameters
     ----------
@@ -132,9 +132,9 @@ def proj(x, v, r):
     Notes
     -----
     This is the function
-    :math:`P: S^{d-k+1} \to A_{d-k}(v_k, r_k)` for
+    :math:`P: S^{d-k+1} \to A_{d-k}(v_k, r_k ) \subset S^{d-k+1}` for
     :math:`k = 1, 2, \ldots, d-1` in the original paper.
-    Here, :math:`A_{d-k}(v_k, r_k) \subset S^{d-k+1}` is a subsphere of the hypersphere.
+    Here, :math:`A_{d-k}(v_k, r_k)` is a subsphere of the hypersphere :math:`S^{d-k+1}`.
     The input and output data dimension are :math:`m+1`, where :math:`m = d-k+1`.
 
     Note that the projection at :math:`k=d` is not supported by this function.
@@ -205,8 +205,13 @@ def embed(x, v, r):
 
     Notes
     -----
-    This is the function :math:`x^\dagger = f_k(x; v_k, r_k) \in S^{d-k}`
-    in the original paper, where :math:`m = d-k+1`.
+    This is the function
+    :math:`f_k: A_{d-k}(v_k, r_k) \subset S^{d-k+1} \to S^{d-k}` for
+    :math:`k = 1, 2, \ldots, d-1` in the original paper.
+    Here, :math:`A_{d-k}(v_k, r_k)` is a subsphere of the hypersphere :math:`S^{d-k+1}`.
+    The input is :math:`x \in S^m \subset \mathbb{R}^{m+1}`
+    and the output is :math:`x^\dagger \in S^{m-1} \subset \mathbb{R}^{m}`,
+    where :math:`m = d-k+1`.
 
     Examples
     --------
@@ -258,8 +263,13 @@ def reconstruct(x, v, r):
 
     Notes
     -----
-    This is the function :math:`x = f_k^{-1}(x^\dagger; v_k, r_k) \in A_{d-k}`
-    in the original paper, where :math:`m = d-k+1`.
+    This is the function
+    :math:`f^{-1}_k: S^{d-k} \to A_{d-k}(v_k, r_k) \subset S^{d-k+1}` for
+    :math:`k = 1, 2, \ldots, d-1` in the original paper.
+    Here, :math:`A_{d-k}(v_k, r_k)` is a subsphere of the hypersphere :math:`S^{d-k+1}`.
+    The input is :math:`x^\dagger \in S^{m-1} \subset \mathbb{R}^{m}`
+    and the output is :math:`x \in S^m \subset \mathbb{R}^{m+1}`,
+    where :math:`m = d-k+1`.
 
     Examples
     --------
