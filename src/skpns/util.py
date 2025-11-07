@@ -11,14 +11,14 @@ __all__ = [
 ]
 
 
-def circular_data(dim=3, size="small"):
+def circular_data(dim=3, scale="small"):
     """Circular data on a 3D unit sphere, or its projection to 2D unit sphere.
 
     Parameters
     ----------
     dim : {3, 2}
         Data dimension.
-    size : {"small", "large"}
+    scale : {"small", "large"}
         Size of the circle around the 3D sphere.
 
     Returns
@@ -36,17 +36,17 @@ def circular_data(dim=3, size="small"):
     ... fig = plt.figure()
     ... ax1 = fig.add_subplot(121, projection='3d', computed_zorder=False)
     ... ax1.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
-    ... ax1.scatter(*circular_data(3, size="large").T, marker="x")
-    ... ax1.scatter(*circular_data(3, size="small").T, marker="x")
+    ... ax1.scatter(*circular_data(3, scale="large").T, marker="x")
+    ... ax1.scatter(*circular_data(3, scale="small").T, marker="x")
     ... ax2 = fig.add_subplot(122)
-    ... ax2.scatter(*circular_data(2, size="large").T, marker="x")
-    ... ax2.scatter(*circular_data(2, size="small").T, marker="x")
+    ... ax2.scatter(*circular_data(2, scale="large").T, marker="x")
+    ... ax2.scatter(*circular_data(2, scale="small").T, marker="x")
     ... ax2.set_aspect("equal")
     """
     # 3D data around north pole
-    if size == "small":
+    if scale == "small":
         t = np.random.uniform(0.1 * np.pi, 0.2 * np.pi, 100)
-    elif size == "large":
+    elif scale == "large":
         t = np.random.uniform(0.4 * np.pi, 0.5 * np.pi, 100)
     p = np.random.uniform(0, 3 * np.pi / 2, 100)
     x = np.array([np.sin(t) * np.cos(p), np.sin(t) * np.sin(p), np.cos(t)]).T

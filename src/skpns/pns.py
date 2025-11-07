@@ -317,7 +317,8 @@ def residual(x, v, r):
 
     Notes
     -----
-    This is the signed (unscaled) residual :math:`\xi = \rho(x, v) - r` in the original paper.
+    This is the signed unscaled residual :math:`\xi = \rho(x, v) - r`
+    in the original paper.
 
     Let :math:`k = 1, \ldots, d`.
     The inputs are :math:`x \in S^{d-k+1}`, :math:`v_k \in S^{d-k+1}` and
@@ -389,7 +390,8 @@ def pns(x, tol=1e-3, residual="none"):
     1. The principal axis :math:`\hat{v}_{k} \in S^{d-k+1} \subset \mathbb{R}^{d-k+2}`,
     2. The principal geodesic distance :math:`\hat{r}_k \in \mathbb{R}`, and
     3. The embedded data :math:`x_k^\dagger \in S^{d-k} \subset \mathbb{R}^{d-k+1}`.
-    4. (Optional) Scaled residual :math:`\Xi(d-k)`, or unscaled residual :math:`\xi_{d-k}`.
+    4. (Optional) Scaled residual :math:`\Xi(d-k)`, 
+       or unscaled residual :math:`\xi_{d-k}`.
 
     Data projected onto each principal nested sphere in the original space,
     :math:`\hat{\mathfrak{A}}_{d-k} \subset S^d`,
@@ -397,24 +399,67 @@ def pns(x, tol=1e-3, residual="none"):
 
     Examples
     --------
-    >>> from skpns.pns import pns, reconstruct
-    >>> from skpns.util import circular_data, unit_sphere, circle
-    >>> x = circular_data()
-    >>> pns_gen = pns(x, residual="scaled")
-    >>> v1, r1, xd1, Xi1 = next(pns_gen)
-    >>> v2, r2, xd2, Xi2 = next(pns_gen)
-    >>> import matplotlib.pyplot as plt  # doctest: +SKIP
-    ... fig = plt.figure()
-    ... ax1 = fig.add_subplot(121, projection='3d', computed_zorder=False)
-    ... ax1.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
-    ... ax1.plot(*circle(v1, r1), color="tab:red")
-    ... ax1.scatter(*reconstruct(xd1, v1, r1).T, marker="x")
-    ... ax1.scatter(*reconstruct(reconstruct(xd2, v2, r2), v1, r1).T, zorder=10)
-    ... ax1.scatter(*x.T, c=Xi2)
-    ... ax2 = fig.add_subplot(122)
-    ... ax2.scatter(Xi2, Xi1, c=Xi2)
-    ... ax2.set_xlim(-np.pi, np.pi)
-    ... ax2.set_ylim(-np.pi/2, np.pi/2)
+    Use :func:`reconstruct` to map reduced data onto the original sphere.
+
+    .. plot::
+        :include-source:
+        :context: reset
+
+        >>> from skpns.pns import pns, reconstruct
+        >>> from skpns.util import circular_data, unit_sphere, circle
+        >>> x = circular_data()
+        >>> pns_gen = pns(x, residual="none")
+        >>> v1, r1, xd1 = next(pns_gen)
+        >>> v2, r2, xd2 = next(pns_gen)
+        >>> import matplotlib.pyplot as plt  # doctest: +SKIP
+        ... ax = plt.figure().add_subplot(projection='3d', computed_zorder=False)
+        ... ax.plot_surface(*unit_sphere(), color='skyblue', edgecolor='gray')
+        ... ax.scatter(*x.T)
+        ... ax.scatter(*reconstruct(xd1, v1, r1).T, marker="x")
+        ... ax.scatter(*reconstruct(reconstruct(xd2, v2, r2), v1, r1).T, zorder=10)
+        ... ax.plot(*circle(v1, r1), color="tab:red")
+
+    Unscaled residuals do not distinguish the scale of the data on the original sphere.
+
+    .. plot::
+        :include-source:
+        :context: close-figs
+
+        >>> X = circular_data(scale="large")
+        >>> (V1, R1, XD1, XI1), (V2, R2, XD2, XI2) = list(pns(X, residual="unscaled"))
+        >>> x = circular_data(scale="small")
+        >>> (v1, r1, xd1, xi1), (v2, r2, xd2, xi2) = list(pns(x, residual="unscaled"))
+        >>> fig = plt.figure()  # doctest: +SKIP
+        ... ax1 = fig.add_subplot(121, projection='3d', computed_zorder=False)
+        ... ax1.plot_surface(*unit_sphere(), color='skyblue', edgecolor='gray')
+        ... ax1.scatter(*X.T)
+        ... ax1.scatter(*x.T)
+        ... ax2 = fig.add_subplot(122)
+        ... ax2.scatter(XI2, XI1)
+        ... ax2.scatter(xi2, xi1)
+        ... ax2.set_xlim(-np.pi, np.pi)
+        ... ax2.set_ylim(-np.pi/2, np.pi/2)
+
+    Scaled residuals distinguish different arc-lengths of principal subspheres.
+
+    .. plot::
+        :include-source:
+        :context: close-figs
+
+        >>> X = circular_data(scale="large")
+        >>> (V1, R1, XD1, XI1), (V2, R2, XD2, XI2) = list(pns(X, residual="scaled"))
+        >>> x = circular_data(scale="small")
+        >>> (v1, r1, xd1, xi1), (v2, r2, xd2, xi2) = list(pns(x, residual="scaled"))
+        >>> fig = plt.figure()  # doctest: +SKIP
+        ... ax1 = fig.add_subplot(121, projection='3d', computed_zorder=False)
+        ... ax1.plot_surface(*unit_sphere(), color='skyblue', edgecolor='gray')
+        ... ax1.scatter(*X.T)
+        ... ax1.scatter(*x.T)
+        ... ax2 = fig.add_subplot(122)
+        ... ax2.scatter(XI2, XI1)
+        ... ax2.scatter(xi2, xi1)
+        ... ax2.set_xlim(-np.pi, np.pi)
+        ... ax2.set_ylim(-np.pi/2, np.pi/2)
     """
     d = x.shape[1] - 1
 
