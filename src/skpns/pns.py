@@ -123,7 +123,7 @@ def proj(x, v, r):
     Notes
     -----
     This is the function
-    :math:`P\{x; A_{d-k}(v_k, r_k)\}: S^{d-k+1} \to A_{d-k}(v_k, r_k)` for
+    :math:`P: S^{d-k+1} \to A_{d-k}(v_k, r_k)` for
     :math:`k = 1, 2, \ldots, d-1` in the original paper.
     Here, :math:`A_{d-k}(v_k, r_k) \subset S^{d-k+1}` is a subsphere of the hypersphere.
     The input and output data dimension are :math:`m+1`, where :math:`m = d-k+1`.
@@ -138,7 +138,7 @@ def proj(x, v, r):
 
     The resulting points have same number of components but their rank is reduced
     by one in the manifold. Use :func:`embed` to further map
-    :math:`x^P \in A_{d-k}(v_k, r_k)` to :math:`S^{d-k}`.
+    :math:`x \in A_{d-k}(v_k, r_k) \subset S^{d-k+1}` to :math:`x^\dagger \in S^{d-k}`.
 
     Examples
     --------
