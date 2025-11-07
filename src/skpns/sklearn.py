@@ -3,7 +3,7 @@
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 
-from .pns import _rotate, embed, pns, proj, pss, reconstruct
+from .pns import embed, pns, proj, reconstruct
 
 __all__ = [
     "ExtrinsicPNS",
@@ -159,106 +159,100 @@ PNS = ExtrinsicPNS
 
 
 class IntrinsicPNS(TransformerMixin, BaseEstimator):
-    pass
-    # r"""Principal nested spheres (PNS) analysis with intrinsic coordinates.
+    r"""Principal nested spheres (PNS) analysis with intrinsic coordinates.
 
-    # Reduces the dimensionality of data on a high-dimensional hypersphere
-    # while preserving its spherical geometry.
+    Reduces the dimensionality of data on a high-dimensional hypersphere
+    while preserving its spherical geometry.
 
-    # The resulting data are represented by intrinsic coordinates.
-    # For example, `n_components=2` transforms data onto the surface of a 3D sphere,
-    # represented by spherical coordinates.
+    The resulting data are intrinsic Euclidean coordinates, which are the
+    scaled residuals in each dimension. For example, `n_components=2`
+    represents data on the surface of a 3D sphere.
 
-    # The first coordinate is the azimuthal angle in :math:`[-\pi, \pi]`.
-    # The following coordinates, if existing, are the polar angles in :math:`[-\pi/2, \pi/2]`.
+    Parameters
+    ----------
+    n_components : int, default=None
+        Number of components to keep.
+        Data are transformed onto a Euclidean space in this dimension,
+        representing the surface of a hypersphere with the same dimension.
+        If None, all components are kept, i.e., extrinsic coordinates are
+        converted to intrinsic coordinates without loosing dimenisonality.
+    tol : float, default=1e-3
+        Optimization tolerance.
 
-    # Parameters
-    # ----------
-    # n_components : int, default=None
-    #     Number of components to keep.
-    #     Data are transformed onto a unit hypersphere in this dimension, embedded in
-    #     `n_components + 1` dimensions.
-    #     If None, all components are kept.
-    # tol : float, default=1e-3
-    #     Optimization tolerance.
+    Attributes
+    ----------
+    embedding_ : ndarray of shape (n_samples, d)
+        The embedding vectors,
+        :math:`\Xi(0), \Xi(1), \ldots, \Xi(d-1)`,
+        where the input data is on d-sphere.
+    v_ : list of arrays
+        Principal directions of nested spheres,
+        :math:`\hat{v}_1, \hat{v}_2, \ldots, \hat{v}_d`.
+    r_ : ndarray
+        Principal radii of nested spheres,
+        :math:`\hat{r}_1, \hat{r}_2, \ldots, \hat{r}_d`.
 
-    # Attributes
-    # ----------
-    # embedding_ : ndarray of shape (n_samples, n_components)
-    #     Stores the embedding vectors.
-    # v_ : list of (n_features - 1) arrays
-    #     Principal directions of nested spheres.
-    # r_ : ndarray of shape (n_features - 1,)
-    #     Principal radii of nested spheres.
+    Notes
+    -----
+    The resulting data is
 
-    # Examples
-    # --------
-    # >>> from skpns import IntrinsicPNS
-    # >>> from skpns.util import circular_data, unit_sphere
-    # >>> X = circular_data()
-    # >>> pns = IntrinsicPNS()
-    # >>> X_transformed = pns.fit_transform(X)
-    # >>> import matplotlib.pyplot as plt
-    # ... fig = plt.figure()
-    # ... ax1 = fig.add_subplot(121, projection='3d', computed_zorder=False)
-    # ... ax1.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
-    # ... ax1.scatter(*X.T, c=X_transformed[:, 0])
-    # ... ax2 = fig.add_subplot(122)
-    # ... ax2.set_xlim(-np.pi, np.pi)
-    # ... ax2.set_ylim(-np.pi/2, np.pi/2)
-    # ... ax2.scatter(*X_transformed.T, c=X_transformed[:, 0])
-    # """
+    .. math::
 
-    # def __init__(self, n_components=None, tol=1e-3):
-    #     self.n_components = n_components
-    #     self.tol = tol
+        \hat{X}_\mathrm{PNS} =
+        \begin{bmatrix}
+            \Xi(0) \\
+            \Xi(1) \\
+            \vdots \\
+            \Xi(n)
+        \end{bmatrix},
 
-    # def _fit_transform(self, X):
-    #     d = X.shape[1] - 1
-    #     if self.n_components is None:
-    #         self.n_components = X.shape[1] - 1
+    using notation in the original paper, where :math:`n` is *n_components*.
+    The coordinates lie in :math:`[-\pi, \pi] \times [-\pi/2, \pi/2]^{n-1}`.
 
-    #     self._n_features = X.shape[1]
-    #     self.v_ = []
-    #     self.r_ = []
+    Examples
+    --------
+    >>> from skpns import IntrinsicPNS
+    >>> from skpns.util import circular_data, unit_sphere
+    >>> X = circular_data()
+    >>> pns = IntrinsicPNS()
+    >>> Xi = pns.fit_transform(X)
+    >>> import matplotlib.pyplot as plt  # doctest: +SKIP
+    ... fig = plt.figure()
+    ... ax1 = fig.add_subplot(121, projection='3d', computed_zorder=False)
+    ... ax1.plot_surface(*unit_sphere(), color='skyblue', edgecolor='gray')
+    ... ax1.scatter(*X.T, c=Xi[:, 0])
+    ... ax2 = fig.add_subplot(122)
+    ... ax2.scatter(*Xi.T, c=Xi[:, 0])
+    ... ax2.set_xlim(-np.pi, np.pi)
+    ... ax2.set_ylim(-np.pi/2, np.pi/2)
+    """
 
-    #     # signed residual xi (will be scaled to be Xi)
-    #     residuals = []
-    #     for _ in range(self._n_features - 2):
-    #         v, r = pss(X, self.tol)
-    #         self.v_.append(v)
-    #         self.r_.append(r)
+    def __init__(self, n_components=None, tol=1e-3):
+        self.n_components = n_components
+        self.tol = tol
 
-    #         # Projection
-    #         geod = np.arccos(X @ v)[..., np.newaxis]
-    #         A = (np.sin(r) * X + np.sin(geod - r) * v) / np.sin(geod)
-    #         residuals.append(geod - r)
-    #         X = embed(A, v, r)
-    #     # deal with the last dimension
-    #     v, r = pss(X, self.tol)
-    #     self.v_.append(v)  # elements: v1, v2, ...,
-    #     self.r_.append(r)
-    #     residuals.append(np.arctan2(X @ (v @ [[0, 1], [-1, 0]]), X @ v).reshape(-1, 1))
+    def _fit_transform(self, X):
+        if self.n_components is None:
+            self.n_components = X.shape[1] - 1
 
-    #     # Scale residuals: Xi(d-k) = prod(sin(r_i))_{i=1}^{k-1} * xi(k)
-    #     Xi = np.empty((len(X), d))
-    #     sin_r = np.sin(self.r_)
+        self._n_features = X.shape[1]  # d+1
+        self.v_ = []
+        self.r_ = []
 
-    #     for k in range(d):
-    #         Xi[:, k] =
+        residuals = []
+        for v, r, _, Xi in pns(X, self.tol, residual="scaled"):
+            self.v_.append(v)
+            self.r_.append(r)
+            residuals.append(Xi)
+        self.embedding_ = np.flip(np.concatenate(residuals, axis=-1), axis=-1)
 
-    #     Xi[:, 0] = np.prod(sin_r[:1]) * residuals[-1]
+    def fit(self, X, y=None):
+        self._fit_transform(X)
+        return self
 
-    #     # residuals = np.flip(np.concatenate(residuals, axis=-1), axis=-1)
-    #     # self.embedding_ = residuals[:, :self.n_components]
-
-    # def fit(self, X, y=None):
-    #     self._fit_transform(X)
-    #     return self
-
-    # def fit_transform(self, X, y=None):
-    #     self._fit_transform(X)
-    #     return self.embedding_
+    def fit_transform(self, X, y=None):
+        self._fit_transform(X)
+        return self.embedding_[:, : self.n_components]
 
     # def transform(self, X, y=None):
     #     if X.shape[1] != self._n_features:

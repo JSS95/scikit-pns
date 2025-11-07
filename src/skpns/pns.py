@@ -390,7 +390,7 @@ def pns(x, tol=1e-3, residual="none"):
     1. The principal axis :math:`\hat{v}_{k} \in S^{d-k+1} \subset \mathbb{R}^{d-k+2}`,
     2. The principal geodesic distance :math:`\hat{r}_k \in \mathbb{R}`, and
     3. The embedded data :math:`x_k^\dagger \in S^{d-k} \subset \mathbb{R}^{d-k+1}`.
-    4. (Optional) Scaled residual :math:`\Xi(d-k)`, 
+    4. (Optional) Scaled residual :math:`\Xi(d-k)`,
        or unscaled residual :math:`\xi_{d-k}`.
 
     Data projected onto each principal nested sphere in the original space,
@@ -485,7 +485,7 @@ def pns(x, tol=1e-3, residual="none"):
 
     # k=d
     v, r = pss(x, tol)
-    rho = np.arctan2(x @ (v @ [[0, 1], [-1, 0]]), x @ v)
+    rho = np.arctan2(x @ (v @ [[0, 1], [-1, 0]]), x @ v)[..., np.newaxis]
     x_dagger = np.full((len(x), 1), 0, dtype=x.dtype)
 
     xi = rho - r
