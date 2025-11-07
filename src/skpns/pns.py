@@ -369,9 +369,9 @@ def residual(x, v, r):
 
     Parameters
     ----------
-    x : (N, d+1) real array
-        Data on d-sphere.
-    v : (d+1,) real array
+    x : (N, m+1) real array
+        Data on m-sphere.
+    v : (m+1,) real array
         Subsphere axis.
     r : scalar
         Subsphere geodesic distance.
@@ -383,7 +383,11 @@ def residual(x, v, r):
 
     Notes
     -----
-    This is the signed (unscaled) residual :math:`\xi` in the original paper.
+    This is the signed (unscaled) residual :math:`\xi = \rho(x, v) - r` in the original paper.
+
+    Let :math:`k = 1, \ldots, d`.
+    The inputs are :math:`x \in S^{d-k+1}`, :math:`v_k \in S^{d-k+1}` and
+    :math:`r_k \in \mathbb{R}`, and the output is :math:`\xi_{d-k}`.
 
     Examples
     --------
@@ -413,11 +417,10 @@ def residual(x, v, r):
     if D <= 1:
         raise ValueError("Data must be on at least 1-sphere.")
     elif D == 2:
-        xi = np.arctan2(x @ (v @ [[0, 1], [-1, 0]]), x @ v)
+        rho = np.arctan2(x @ (v @ [[0, 1], [-1, 0]]), x @ v)
     else:
         rho = np.arccos(np.dot(x, v.T))
-        xi = rho - r
-    return xi
+    return rho - r
 
 
 def Exp(z):
