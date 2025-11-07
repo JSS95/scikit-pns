@@ -262,6 +262,24 @@ class IntrinsicPNS(TransformerMixin, BaseEstimator):
             )
 
         d = X.shape[1] - 1
+        residuals = []
+
+        sin_r = 1
+        for k in range(1, d):
+            v, r = self.v_[k - 1], self.r_[k - 1]
+            P, xi = proj(X, v, r)
+            X = embed(P, v, r)
+            Xi = sin_r * xi
+            residuals.append(Xi)
+            sin_r *= np.sin(r)
+
+        v, r = self.v_[k], self.r_[k]
+        _, xi = proj(X, v, r)
+        Xi = sin_r * xi
+        residuals.append(Xi)
+
+        ret = np.flip(np.concatenate(residuals, axis=-1), axis=-1)
+        return ret[:, : self.n_components]
 
     #     residuals = []
     #     for i in range(self._n_features - 2):
