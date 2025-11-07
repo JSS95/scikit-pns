@@ -304,7 +304,7 @@ def pns(x, tol=1e-3):
     Parameters
     ----------
     x : (N, d+1) real array
-        Data on d-sphere :math:`S^d \subset \mathbb{R}^{d+1}`.
+        Data on a d-sphere.
     tol : float, default=1e-3
         Convergence tolerance in radian.
 
@@ -314,42 +314,26 @@ def pns(x, tol=1e-3):
         Estimated principal axis :math:`\hat{v}`.
     r : scalar
         Estimated principal geodesic distance :math:`\hat{r}`.
-    x : (N, d-i) real array
+    xd : (N, d-i) real array
         Transformed data :math:`x^\dagger` on low-dimensional unit hypersphere.
+
+    See Also
+    --------
+    reconstruct : Reconstruct the transformed data onto higher-dimensional spheres.
 
     Notes
     -----
-    Let :math:`k = 1, \ldots, d-1`.
-    The entire :math:`\hat{v}` are
+    The input data is :math:`x \in S^d \subset \mathbb{R}^{d+1}`.
 
-    .. math::
+    At :math:`k`-th iteration for :math:`k=1, \ldots, d`, this generator yields:
 
-        \hat{v}_{1} \in S^{d} \subset \mathbb{R}^{d+1},\quad
-        \ldots,\quad
-        \hat{v}_{k} \in S^{d-k+1} \subset \mathbb{R}^{d-k+2},\quad
-        \ldots,\quad
-        \hat{v}_{d} \in S^{1} \subset \mathbb{R}^{2},
+    1. The principal axis :math:`\hat{v}_{k} \in S^{d-k+1} \subset \mathbb{R}^{d-k+2}`,
+    2. The principal geodesic distance :math:`\hat{r}_k \in \mathbb{R}`, and
+    3. The embedded data :math:`x_k^\dagger \in S^{d-k} \subset \mathbb{R}^{d-k+1}`.
 
-    the entire :math:`\hat{r}` are
-
-    .. math::
-
-        \hat{r}_{1},\quad
-        \ldots,\quad
-        \hat{r}_{d} \in \mathbb{R},
-
-    and the transformed data are
-
-    .. math::
-
-        x^\dagger_{1} \in S^{d-1} \subset \mathbb{R}^{d},\quad
-        \ldots,\quad
-        x^\dagger_{k} \in S^{d-k} \subset \mathbb{R}^{d-k+1},\quad
-        \ldots,\quad
-        x^\dagger_{d} \subset \mathbb{R},
-
-    Note that the results from the last iteration are specially handled,
-    as described in the original paper.
+    Data projected onto each principal nested sphere in the original space,
+    :math:`\hat{\mathfrak{A}}_{d-k} \subset S^d`,
+    can be found by recursively calling :func:`reconstruct` on :math:`x_k^\dagger`.
 
     Examples
     --------
@@ -357,14 +341,14 @@ def pns(x, tol=1e-3):
     >>> from skpns.util import circular_data, unit_sphere, circle
     >>> x = circular_data()
     >>> pns_gen = pns(x)
-    >>> v1, r1, A1 = next(pns_gen)
-    >>> v2, r2, A2 = next(pns_gen)
+    >>> v1, r1, xd1 = next(pns_gen)
+    >>> v2, r2, xd2 = next(pns_gen)
     >>> import matplotlib.pyplot as plt  # doctest: +SKIP
     ... ax = plt.figure().add_subplot(projection='3d', computed_zorder=False)
     ... ax.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
     ... ax.scatter(*x.T, marker=".")
-    ... ax.scatter(*reconstruct(A1, v1, r1).T, marker="x")
-    ... ax.scatter(*reconstruct(reconstruct(A2, v2, r2), v1, r1).T, zorder=10)
+    ... ax.scatter(*reconstruct(xd1, v1, r1).T, marker="x")
+    ... ax.scatter(*reconstruct(reconstruct(xd2, v2, r2), v1, r1).T, zorder=10)
     ... ax.plot(*circle(v1, r1), color="tab:red")
     """
     d = x.shape[1] - 1
@@ -407,17 +391,17 @@ def residual(x, v, r):
     >>> from skpns.util import circular_data, unit_sphere, circle
     >>> x = circular_data()
     >>> pns_gen = pns(x)
-    >>> v1, r1, A1 = next(pns_gen)
+    >>> v1, r1, xd1 = next(pns_gen)
     >>> res1 = residual(x, v1, r1)
-    >>> v2, r2, A2 = next(pns_gen)
-    >>> res2 = residual(A1, v2, r2)
+    >>> v2, r2, _ = next(pns_gen)
+    >>> res2 = residual(xd1, v2, r2)
     >>> import matplotlib.pyplot as plt  # doctest: +SKIP
     ... fig = plt.figure()
     ... ax1 = fig.add_subplot(121, projection='3d', computed_zorder=False)
     ... ax1.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
     ... ax1.scatter(*x.T, c=res2)
     ... ax1.plot(*circle(v1, r1), color="tab:red")
-    ... ax1.scatter(*reconstruct(reconstruct(A2, v2, r2), v1, r1).T, color="tab:red")
+    ... ax1.scatter(*reconstruct(reconstruct(x2, v2, r2), v1, r1).T, color="tab:red")
     ... ax2 = fig.add_subplot(122)
     ... ax2.set_xlim(-np.pi/2, np.pi/2)
     ... ax2.set_ylim(-np.pi, np.pi)
