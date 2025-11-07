@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `pns.to_unit_sphere()` is renamed to `embed()`. Old name is still supported as alias.
 - `pns.from_unit_sphere()` is renamed to `reconstruct()`. Old name is still supported as alias.
 - `pns.pns()` now takes `residual` argument.
+- `pns.proj()` now returns residuals.
 
 ## [1.1.0] - 2025-10-17
 

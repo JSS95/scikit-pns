@@ -123,6 +123,8 @@ def proj(x, v, r):
     xP : (N, m+1) real array
         Extrinsic coordinates of data on a ``d``-dimensional hypersphere,
         projected onto the found principal subsphere.
+    res : (N, 1) real array
+        Projection residuals.
 
     See Also
     --------
@@ -133,13 +135,9 @@ def proj(x, v, r):
     -----
     This is the function
     :math:`P: S^{d-k+1} \to A_{d-k}(v_k, r_k ) \subset S^{d-k+1}` for
-    :math:`k = 1, 2, \ldots, d-1` in the original paper.
+    :math:`k = 1, 2, \ldots, d` in the original paper.
     Here, :math:`A_{d-k}(v_k, r_k)` is a subsphere of the hypersphere :math:`S^{d-k+1}`.
     The input and output data dimension are :math:`m+1`, where :math:`m = d-k+1`.
-
-    Note that the projection at :math:`k=d` is not supported by this function.
-    This projection is trivial, as it collapses all points in :math:`S^1` to the
-    Fréchet mean.
 
     This function projects the data onto any subsphere. To project to the principal
     subsphere :math:`\hat{A}_{d-k} = A_{d-k}(\hat{v}_k, \hat{r}_k)`, pass the results
@@ -154,15 +152,18 @@ def proj(x, v, r):
     >>> from skpns.pns import pss, proj
     >>> from skpns.util import circular_data, unit_sphere
     >>> x = circular_data()
-    >>> A = proj(x, *pss(x))
+    >>> A, _ = proj(x, *pss(x))
     >>> import matplotlib.pyplot as plt  # doctest: +SKIP
     ... ax = plt.figure().add_subplot(projection='3d', computed_zorder=False)
     ... ax.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
     ... ax.scatter(*x.T, marker="x")
     ... ax.scatter(*A.T, marker=".")
     """
-    rho = np.arccos(x @ v)[..., np.newaxis]
-    return (np.sin(r) * x + np.sin(rho - r) * v) / np.sin(rho)
+    if x.shape[1] > 2:
+        rho = np.arccos(x @ v)[..., np.newaxis]
+    elif x.shape[1] == 2:
+        rho = np.arctan2(x @ (v @ [[0, 1], [-1, 0]]), x @ v)[..., np.newaxis]
+    return (np.sin(r) * x + np.sin(rho - r) * v) / np.sin(rho), rho - r
 
 
 def _R(v):
@@ -219,7 +220,7 @@ def embed(x, v, r):
     >>> from skpns.util import circular_data, unit_sphere
     >>> x = circular_data()
     >>> v, r = pss(x)
-    >>> A = proj(x, v, r)
+    >>> A, _ = proj(x, v, r)
     >>> A_low = embed(A, v, r)
     >>> import matplotlib.pyplot as plt  # doctest: +SKIP
     ... fig = plt.figure()
@@ -466,11 +467,9 @@ def pns(x, tol=1e-3, residual="none"):
     sin_r = 1
     for _ in range(1, d):  # k=1, ..., (d-1)
         v, r = pss(x, tol)  # v_k, r_k
-        rho = np.arccos(x @ v)[..., np.newaxis]
-        P = (np.sin(r) * x + np.sin(rho - r) * v) / np.sin(rho)  # points on A_{d-k}
+        P, xi = proj(x, v, r)
         x_dagger = embed(P, v, r)
 
-        xi = rho - r  # xi_{d-k}
         Xi = sin_r * xi  # Xi(d-k), i.e., Xi(d-1), ..., Xi(1)
 
         if residual == "none":
@@ -485,10 +484,9 @@ def pns(x, tol=1e-3, residual="none"):
 
     # k=d
     v, r = pss(x, tol)
-    rho = np.arctan2(x @ (v @ [[0, 1], [-1, 0]]), x @ v)[..., np.newaxis]
+    _, xi = proj(x, v, r)
     x_dagger = np.full((len(x), 1), 0, dtype=x.dtype)
 
-    xi = rho - r
     Xi = sin_r * xi  # Xi(0)
     if residual == "none":
         ret = v, r, x_dagger

@@ -61,7 +61,7 @@ def circular_data(dim=3, scale="small"):
         pass
     elif dim == 2:
         r = np.mean(t)
-        A = proj(x, v, r)
+        A, _ = proj(x, v, r)
         x = embed(A, v, r)
     else:
         raise ValueError("Invalid dimension.")

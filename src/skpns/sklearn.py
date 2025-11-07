@@ -131,7 +131,7 @@ class ExtrinsicPNS(TransformerMixin, BaseEstimator):
             )
 
         for v, r in zip(self.v_, self.r_):
-            A = proj(X, v, r)
+            A, _ = proj(X, v, r)
             X = embed(A, v, r)
         return X
 
@@ -254,12 +254,14 @@ class IntrinsicPNS(TransformerMixin, BaseEstimator):
         self._fit_transform(X)
         return self.embedding_[:, : self.n_components]
 
-    # def transform(self, X, y=None):
-    #     if X.shape[1] != self._n_features:
-    #         raise ValueError(
-    #             f"Input dimension {X.shape[1]} does not match "
-    #             f"fitted dimension {self._n_features}."
-    #         )
+    def transform(self, X, y=None):
+        if X.shape[1] != self._n_features:
+            raise ValueError(
+                f"Input dimension {X.shape[1]} does not match "
+                f"fitted dimension {self._n_features}."
+            )
+
+        d = X.shape[1] - 1
 
     #     residuals = []
     #     for i in range(self._n_features - 2):
