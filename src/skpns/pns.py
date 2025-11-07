@@ -393,7 +393,7 @@ def residual(x, v, r):
     >>> pns_gen = pns(x)
     >>> v1, r1, xd1 = next(pns_gen)
     >>> res1 = residual(x, v1, r1)
-    >>> v2, r2, _ = next(pns_gen)
+    >>> v2, r2, xd2 = next(pns_gen)
     >>> res2 = residual(xd1, v2, r2)
     >>> import matplotlib.pyplot as plt  # doctest: +SKIP
     ... fig = plt.figure()
@@ -401,7 +401,7 @@ def residual(x, v, r):
     ... ax1.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
     ... ax1.scatter(*x.T, c=res2)
     ... ax1.plot(*circle(v1, r1), color="tab:red")
-    ... ax1.scatter(*reconstruct(reconstruct(x2, v2, r2), v1, r1).T, color="tab:red")
+    ... ax1.scatter(*reconstruct(reconstruct(xd2, v2, r2), v1, r1).T, color="tab:red")
     ... ax2 = fig.add_subplot(122)
     ... ax2.set_xlim(-np.pi/2, np.pi/2)
     ... ax2.set_ylim(-np.pi, np.pi)
