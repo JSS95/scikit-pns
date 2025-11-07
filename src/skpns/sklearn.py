@@ -281,93 +281,20 @@ class IntrinsicPNS(TransformerMixin, BaseEstimator):
         ret = np.flip(np.concatenate(residuals, axis=-1), axis=-1)
         return ret[:, : self.n_components]
 
-    #     residuals = []
-    #     for i in range(self._n_features - 2):
-    #         v = self.v_[i]
-    #         r = self.r_[i]
-    #         # proj()
-    #         geod = np.arccos(X @ v)[..., np.newaxis]
-    #         A = (np.sin(r) * X + np.sin(geod - r) * v) / np.sin(geod)
-    #         residuals.append(geod - r)
-    #         X = embed(A, v, r)
-
-    #     # deal with the last dimension
-    #     v, r = self.v_[-1], self.r_[-1]
-    #     residuals.append(np.arctan2(X @ (v @ [[0, 1], [-1, 0]]), X @ v).reshape(-1, 1))
-
-    #     residuals = np.flip(np.concatenate(residuals, axis=-1), axis=-1)
-    #     return residuals[:, :self.n_components]
-
-    # # def inverse_transform(self, Xi):
-    # #     """
-    # #     Examples
-    # #     --------
-    # #     >>> from skpns import IntrinsicPNS
-    # #     >>> from skpns.util import circular_data, unit_sphere
-    # #     >>> X = circular_data()
-    # #     >>> pns = IntrinsicPNS(2)
-    # #     """
-    # #     _, n = Xi.shape
-    # #     if n + 1 > self._n_features:
-    # #         raise ValueError(
-    # #             f"Input extrinsic dimension {n + 1} is larger than "
-    # #             f"fitted dimension {self._n_features}."
-    # #         )
-    # #     rs = list(reversed(self.r_))
-    # #     vs = list(reversed(self.v_))
-
-    # #     # Deal with the first dimension
-    # #     v, r = vs[0], rs[0]
-    # #     X[:, 0]
-
-    # # #     # De-centralize data
-    # # #     X = X.copy()
-    # # #     X[:, :-1] += self.r_[:-1]
-    # # #     X[:, -1] += self._cartesian_to_spherical(self.v_[-1].reshape(1, -1))[0]
-
-    # # #     # Convert to extrinsic coordinates
-    # # #     X_extrinsic = self._spherical_to_cartesian(X)
-    # # #     if X_extrinsic.shape[1] < self._n_features:
-    # # #         # Map to the original dimension
-    # # #         vs = reversed(self.v_[: self._n_features - n - 1])
-    # # #         rs = reversed(self.r_[: self._n_features - n - 1])
-    # # #         for v, r in zip(vs, rs):
-    # # #             X_extrinsic = reconstruct(X_extrinsic, v, r)
-    # # #     else:
-    # # #         pass
-    # # #         # Data is already in original coordinates. Just rotate by v.
-
-    # # #     # X[:, -1] += self._cartesian_to_spherical(self.v_[-1].reshape(1, -1))[0]
-    # # #     # X_extrinsic = self._spherical_to_cartesian(X)
-
-    # # #     # if X_extrinsic.shape[1] == self._n_features:
-    # # #     #     # Data is already in original coordinates.
-    # # #     #     # Just rotate by v.
-    # # #     #     X_extrinsic, _ = _rotate(X_extrinsic, self.v_[0])
-    # # #     # else:
-    # # #     #     # Map to the original dimension
-    # # #     #     vs = reversed(self.v_[: self._n_features - n - 1])
-    # # #     #     rs = reversed(self.r_[: self._n_features - n - 1])
-    # # #     #     for v, r in zip(vs, rs):
-    # # #     #         X_extrinsic = reconstruct(X_extrinsic, v, r)
-    # # #     # return X_extrinsic
-
-    # # # def _spherical_to_cartesian(self, thetas):
-    # # #     N, dim = thetas.shape
-    # # #     n = dim + 1
-    # # #     X = np.zeros((N, n))
-    # # #     X[:, 0] = np.cos(thetas[:, 0])
-    # # #     for i in range(1, n - 1):
-    # # #         X[:, i] = np.prod(np.sin(thetas[:, :i]), axis=1) * np.cos(thetas[:, i])
-    # # #     X[:, -1] = np.prod(np.sin(thetas), axis=1)
-    # # #     return X
-
-    # # # def _cartesian_to_spherical(self, X):
-    # # #     N, n = X.shape
-    # # #     thetas = np.zeros((N, n - 1))
-    # # #     for i in range(n - 2):
-    # # #         denom = np.prod(np.sin(thetas[:, :i]), axis=1) if i > 0 else 1.0
-    # # #         arg = np.clip(X[:, i] / denom, -1.0, 1.0)
-    # # #         thetas[:, i] = np.arccos(arg)
-    # # #     thetas[:, -1] = np.arctan2(X[:, -1], X[:, -2])
-    # # #     return thetas
+    def inverse_transform(self, Xi):
+        """
+        Examples
+        --------
+        >>> from skpns import IntrinsicPNS
+        >>> from skpns.util import circular_data
+        >>> X = circular_data()
+        >>> pns = IntrinsicPNS()
+        >>> X_transform = pns.fit_transform(X)
+        >>> X_inv = pns.inverse_transform(X_transform)
+        """
+        _, n = Xi.shape
+        if n + 1 > self._n_features:
+            raise ValueError(
+                f"Input extrinsic dimension {n + 1} is larger than "
+                f"fitted dimension {self._n_features}."
+            )
