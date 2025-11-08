@@ -10,7 +10,10 @@ scikit-pns documentation
 .. plot:: plot-header.py
     :include-source: False
 
-`scikit-pns` provides :class:`.PNS`, which is a scikit-learn transformer for princiapl nested spheres analysis.
+Principal nested spheres (PNS) analysis [1]_ for scikit-learn.
+
+.. [1] Jung, Sungkyu, Ian L. Dryden, and James Stephen Marron.
+       "Analysis of principal nested spheres." Biometrika 99.3 (2012): 551-568.
 
 ONNX compatibility
 ==================
@@ -19,7 +22,9 @@ PNS can be converted to ONNX and saved.
 
 .. note::
 
-    To use this feature, you need to install scikit-pns with ``[onnx]`` optional dependency, i.e., ``pip install scikit-pns[onnx]``.
+    To use this feature, you need to install scikit-pns with ``[onnx]`` optional dependency::
+
+        pip install scikit-pns[onnx]
 
 .. plot::
 
@@ -55,11 +60,21 @@ PNS can be converted to ONNX and saved.
 Module reference
 ================
 
-.. automodule:: skpns
-    :members:
+High-level API
+--------------
+
+.. autoclass:: skpns.IntrinsicPNS
+
+.. autoclass:: skpns.ExtrinsicPNS
+
+Low-level functions
+-------------------
 
 .. automodule:: skpns.pns
     :members:
+
+Utilities
+---------
 
 .. automodule:: skpns.util
     :members:

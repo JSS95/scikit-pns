@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - UNRELEASED
+
+### Added
+
+- `IntrinsicPNS` class is added.
+
+### Changed
+
+- `PNS()` is renamed to `ExtrinsicPNS()`. Old name is still supported as alias.
+- `PNS.to_hypersphere()` is renamed to `PNS.inverse_transform()`. Old name is still supported as alias.
+
+- `pns.to_unit_sphere()` is renamed to `embed()`. Old name is still supported as alias.
+- `pns.from_unit_sphere()` is renamed to `reconstruct()`. Old name is still supported as alias.
+- `pns.pns()` now takes `residual` argument.
+- `pns.proj()` now returns residuals.
+
+### Removed
+
+- `pns.residual()` is removed.
+
 ## [1.1.0] - 2025-10-17
 
 ### Added
