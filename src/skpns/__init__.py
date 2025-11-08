@@ -18,12 +18,18 @@ __all__ = [
 try:
     from skl2onnx import update_registered_converter
 
-    from .onnx import extrinsicpns_converter, extrinsicpns_shape_calculator
+    from .onnx import extrinsicpns_converter, intrinsicpns_converter, shape_calculator
 
+    update_registered_converter(
+        IntrinsicPNS,
+        "SkpnsIntrinsicPNS",
+        shape_calculator,
+        intrinsicpns_converter,
+    )
     update_registered_converter(
         ExtrinsicPNS,
         "SkpnsExtrinsicPNS",
-        extrinsicpns_shape_calculator,
+        shape_calculator,
         extrinsicpns_converter,
     )
 

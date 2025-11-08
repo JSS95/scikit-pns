@@ -14,17 +14,22 @@ from skl2onnx.algebra.onnx_ops import (
 from .pns import _R
 
 __all__ = [
-    "extrinsicpns_shape_calculator",
+    "shape_calculator",
+    "intrinsicpns_converter",
     "extrinsicpns_converter",
 ]
 
 
-def extrinsicpns_shape_calculator(operator):
+def shape_calculator(operator):
     op = operator.raw_operator
     input_type = operator.inputs[0].type.__class__
     input_dim = operator.inputs[0].get_first_dimension()
     output_type = input_type([input_dim, op.n_components])
     operator.outputs[0].type = output_type
+
+
+def intrinsicpns_converter(scope, operator, container):
+    raise NotImplementedError
 
 
 def extrinsicpns_converter(scope, operator, container):
