@@ -280,3 +280,117 @@ class IntrinsicPNS(TransformerMixin, BaseEstimator):
 
         ret = np.flip(np.concatenate(residuals, axis=-1), axis=-1)
         return ret[:, : self.n_components]
+
+    def inverse_transform(self, Xi):
+        """
+        Examples
+        --------
+        >>> from skpns import IntrinsicPNS
+        >>> from skpns.util import circular_data, unit_sphere
+        >>> X = circular_data()
+        >>> pns = IntrinsicPNS()
+        >>> Xi = pns.fit_transform(X)
+        >>> X_inv = pns.inverse_transform(Xi)
+        >>> import matplotlib.pyplot as plt  # doctest: +SKIP
+        ... fig = plt.figure()
+        ... ax1 = fig.add_subplot(121, projection='3d', computed_zorder=False)
+        ... ax1.plot_surface(*unit_sphere(), color='skyblue', edgecolor='gray')
+        ... ax1.scatter(*X.T)
+        ... ax2 = fig.add_subplot(122, projection='3d', computed_zorder=False)
+        ... ax2.plot_surface(*unit_sphere(), color='skyblue', edgecolor='gray')
+        ... ax2.scatter(*X_inv.T)
+        """
+        d = self._n_features - 1
+        _, n = Xi.shape
+        if n > d:
+            raise ValueError(
+                f"Input dimension {n} is larger than fitted dimension {d}."
+            )
+        Xi = np.concatenate(
+            [Xi, np.zeros((Xi.shape[0], self._n_features - n - 1))], axis=-1
+        )  # Now, each column in Xi is Xi(0), ..., Xi(d-1).
+
+        # Un-scale Xi, i.e., xi(d-k) = Xi(d-k) / prod_{i=1}^{k-1}(sin(r_i)).
+        sin_rs = np.sin(self.r_[:-1])  # sin(r_1), sin(r_2), ..., sin(r_{d-1})
+        xi = Xi.copy()  # xi(0), ..., xi(d-1)
+        prod_sin_r = np.prod(sin_rs)
+        for i in range(d - 1):
+            xi[:, i] /= prod_sin_r
+            prod_sin_r /= sin_rs[-i - 1]
+        xi[:, d - 1] /= prod_sin_r
+        # 여기까지는 문제없이 unscaled residual를 잘 복원함을 확인함....
+
+        # Starting from the lowest dimension,
+        # 1. Convert to cartesian coordinates.
+        # 2. Reconstruct to one higher dimension, with north pole different from v.
+        # 3. Rotate for v.
+        # 4. Un-project with residuals.
+        # 5. Go to 2.
+
+        # Initialize: rotate xi(0) and convert to cartesian
+        xi[:, 0] += _cartesian_to_hyperspherical(self.v_[-1][np.newaxis, ...])[0]
+        x_dagger = _hyperspherical_to_cartesian(xi[:, :1])
+
+        # Step 2 to Step 5
+        for i in range(d - 1):
+            k = i + 1  # 1, 2, ..., d - 1
+            A = reconstruct(x_dagger, self.v_[-1 - k], self.r_[-1 - k])
+            x_dagger = _inv_proj(A, np.sin(xi[:, k]), self.v_[-1 - k], self.r_[-1 - k])
+
+        return x_dagger
+
+
+def _cartesian_to_hyperspherical(X):
+    """
+    Convert (N, d+1) Cartesian coordinates on a d-sphere
+    to hyperspherical coordinates (N, d).
+
+    Convention:
+      - xi[..., 0]: azimuthal angle in [-pi, pi]
+      - xi[..., 1:]: centered elevation angles in [-pi/2, pi/2]
+    """
+    N, D = X.shape
+    d = D - 1
+    xi = np.zeros((N, d))
+
+    xi[:, 0] = np.arctan2(X[:, 1], X[:, 0])
+    for i in range(1, d - 1):
+        denom = np.linalg.norm(X[:, i:], axis=1)
+        xi[:, i] = np.arctan(X[:, i + 1] / denom)
+    xi[:, -1] = np.arctan2(X[:, -1], np.linalg.norm(X[:, :-1], axis=1))
+
+    return xi
+
+
+def _hyperspherical_to_cartesian(xi):
+    """
+    Convert (N, d) hyperspherical coordinates back to
+    Cartesian coordinates (N, d+1) on a unit d-sphere.
+
+    Convention:
+      - xi[..., 0]: azimuthal angle in [-pi, pi]
+      - xi[..., 1:]: centered elevation angles in [-pi/2, pi/2]
+    """
+    N, d = xi.shape
+    X = np.zeros((N, d + 1))
+
+    for n in range(N):
+        angles = xi[n]
+        cos_elev = np.cumprod(np.cos(angles[1:][::-1]))[::-1]
+        X[n, 0] = np.cos(angles[0]) * (cos_elev[0] if d > 1 else 1)
+        X[n, 1] = np.sin(angles[0]) * (cos_elev[0] if d > 1 else 1)
+        for k in range(1, d):
+            X[n, k + 1] = np.sin(angles[k]) * (cos_elev[k] if k < d - 1 else 1)
+    return X
+
+
+def _inv_proj(P, xi, v, r):
+    """Inverse of pns.proj().
+
+    Parameters
+    ----------
+    P, xi : Results from pns.proj()
+    v, r : Principal axis and geodesic distance.
+    """
+    rho = (xi + r)[..., np.newaxis]
+    return (P * np.sin(rho) - np.sin(rho - r) * v) / np.sin(r)
