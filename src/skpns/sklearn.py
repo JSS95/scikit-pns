@@ -194,7 +194,7 @@ class IntrinsicPNS(TransformerMixin, BaseEstimator):
 
     Notes
     -----
-    The resulting data is
+    The resulting data is the transposed matrix of
 
     .. math::
 
@@ -206,8 +206,9 @@ class IntrinsicPNS(TransformerMixin, BaseEstimator):
             \Xi(n)
         \end{bmatrix},
 
-    using notation in the original paper, where :math:`n` is *n_components*.
-    The coordinates lie in :math:`[-\pi, \pi] \times [-\pi/2, \pi/2]^{n-1}`.
+    with notations in the original paper, where :math:`n` is *n_components*.
+    The coordinates lie in :math:`[-\pi, \pi] \times [-\pi/2, \pi/2]^{n-1}`,
+    i.e., the azimuthal angle is the first coordinate.
 
     Examples
     --------
