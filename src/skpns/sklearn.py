@@ -248,14 +248,54 @@ class IntrinsicPNS(TransformerMixin, BaseEstimator):
         self.embedding_ = np.flip(np.concatenate(residuals, axis=-1), axis=-1)
 
     def fit(self, X, y=None):
+        """Find principal nested spheres for the data X.
+
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            Data on (n_features - 1)-dimensional hypersphere.
+        y : Ignored
+            Not used, present for API consistency by convention.
+
+        Returns
+        -------
+        self : object
+            Returns a fitted instance of self.
+        """
         self._fit_transform(X)
         return self
 
     def fit_transform(self, X, y=None):
+        """Fit the model with data in X and transform X.
+
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            Data on (n_features - 1)-dimensional hypersphere.
+        y : Ignored
+            Not used, present for API consistency by convention.
+
+        Returns
+        -------
+        X_new : array-like, shape (n_samples, n_components)
+            X transformed in the new space.
+        """
         self._fit_transform(X)
         return self.embedding_[:, : self.n_components]
 
     def transform(self, X, y=None):
+        """Transform X onto the fitted subsphere.
+
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_features)
+            Data on (n_features - 1)-dimensional hypersphere.
+
+        Returns
+        -------
+        X_new : array-like, shape (n_samples, n_components)
+            X transformed in the new space.
+        """
         if X.shape[1] != self._n_features:
             raise ValueError(
                 f"Input dimension {X.shape[1]} does not match "
@@ -283,23 +323,29 @@ class IntrinsicPNS(TransformerMixin, BaseEstimator):
         return ret[:, : self.n_components]
 
     def inverse_transform(self, Xi):
-        """
+        """Transform the low-dimensional data back to the original hypersphere.
+
+        Parameters
+        ----------
+        X : array-like of shape (n_samples, n_components)
+
+        Returns
+        -------
+        X_new : array-like of shape (n_samples, n_features)
+
         Examples
         --------
         >>> from skpns import IntrinsicPNS
         >>> from skpns.util import circular_data, unit_sphere
         >>> X = circular_data()
-        >>> pns = IntrinsicPNS()
+        >>> pns = IntrinsicPNS(1)
         >>> Xi = pns.fit_transform(X)
         >>> X_inv = pns.inverse_transform(Xi)
         >>> import matplotlib.pyplot as plt  # doctest: +SKIP
-        ... fig = plt.figure()
-        ... ax1 = fig.add_subplot(121, projection='3d', computed_zorder=False)
-        ... ax1.plot_surface(*unit_sphere(), color='skyblue', edgecolor='gray')
-        ... ax1.scatter(*X.T)
-        ... ax2 = fig.add_subplot(122, projection='3d', computed_zorder=False)
-        ... ax2.plot_surface(*unit_sphere(), color='skyblue', edgecolor='gray')
-        ... ax2.scatter(*X_inv.T)
+        ... ax = plt.figure().add_subplot(projection='3d', computed_zorder=False)
+        ... ax.plot_surface(*unit_sphere(), color='skyblue', edgecolor='gray')
+        ... ax.scatter(*X.T)
+        ... ax.scatter(*X_inv.T)
         """
         d = self._n_features - 1
         _, n = Xi.shape
@@ -319,7 +365,6 @@ class IntrinsicPNS(TransformerMixin, BaseEstimator):
             xi[:, i] /= prod_sin_r
             prod_sin_r /= sin_rs[-i - 1]
         xi[:, d - 1] /= prod_sin_r
-        # 여기까지는 문제없이 unscaled residual를 잘 복원함을 확인함....
 
         # Starting from the lowest dimension,
         # 1. Convert to cartesian coordinates.

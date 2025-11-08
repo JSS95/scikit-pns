@@ -1,5 +1,8 @@
 """Principal nested spheres (PNS) analysis [1]_ for scikit-learn.
 
+The main API classes are :class:`IntrinsicPNS` and :class:`ExtrinsicPNS`.
+Low-level functions are available in :mod:`skpns.pns`.
+
 .. [1] Jung, Sungkyu, Ian L. Dryden, and James Stephen Marron.
        "Analysis of principal nested spheres." Biometrika 99.3 (2012): 551-568.
 """

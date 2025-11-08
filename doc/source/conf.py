@@ -45,3 +45,22 @@ html_theme_options = {
 
 plot_html_show_formats = False
 plot_html_show_source_link = False
+
+
+def autodoc_skip_member(app, what, name, obj, skip, options):
+    """Skip metadata routing methods from scikit-learn."""
+    exclude_methods = {
+        "set_inverse_transform_request",
+        "set_transform_request",
+        "set_fit_request",
+        "set_score_request",
+        "set_partial_fit_request",
+        "get_metadata_routing",
+    }
+    if name in exclude_methods:
+        return True
+    return skip
+
+
+def setup(app):
+    app.connect("autodoc-skip-member", autodoc_skip_member)

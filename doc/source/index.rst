@@ -10,10 +10,7 @@ scikit-pns documentation
 .. plot:: plot-header.py
     :include-source: False
 
-Principal nested spheres (PNS) analysis [1]_ for scikit-learn.
-
-.. [1] Jung, Sungkyu, Ian L. Dryden, and James Stephen Marron.
-       "Analysis of principal nested spheres." Biometrika 99.3 (2012): 551-568.
+.. automodule:: skpns
 
 ONNX compatibility
 ==================
@@ -64,8 +61,10 @@ High-level API
 --------------
 
 .. autoclass:: skpns.IntrinsicPNS
+    :members:
 
 .. autoclass:: skpns.ExtrinsicPNS
+    :members:
 
 Low-level functions
 -------------------
