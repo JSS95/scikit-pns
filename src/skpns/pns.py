@@ -10,7 +10,6 @@ __all__ = [
     "to_unit_sphere",
     "reconstruct",
     "from_unit_sphere",
-    "residual",
     "pns",
     "Exp",
     "Log",
@@ -297,60 +296,6 @@ def reconstruct(x, v, r):
 def from_unit_sphere(x, v, r):
     """alias of :func:`reconstruct`."""
     return reconstruct(x, v, r)
-
-
-def residual(x, v, r):
-    r"""Signed residuals caused by projecting data to a subsphere.
-
-    Parameters
-    ----------
-    x : (N, m+1) real array
-        Data on m-sphere.
-    v : (m+1,) real array
-        Subsphere axis.
-    r : scalar
-        Subsphere geodesic distance.
-
-    Returns
-    -------
-    xi : (N,) array
-        Signed residuals.
-
-    Notes
-    -----
-    This is the signed unscaled residual :math:`\xi = \rho(x, v) - r`
-    in the original paper.
-
-    Let :math:`k = 1, \ldots, d`.
-    The inputs are :math:`x \in S^{d-k+1}`, :math:`v_k \in S^{d-k+1}` and
-    :math:`r_k \in \mathbb{R}`, and the output is :math:`\xi_{d-k}`.
-
-    Examples
-    --------
-    >>> from skpns.pns import residual
-    >>> from skpns.util import circular_data, unit_sphere, circle
-    >>> x = circular_data()
-    >>> v = np.array([1 / np.sqrt(3), -1 / np.sqrt(3), 1 / np.sqrt(3)])
-    >>> r = 0.15 * np.pi
-    >>> res = residual(x, v, r)
-    >>> import matplotlib.pyplot as plt  # doctest: +SKIP
-    ... fig = plt.figure()
-    ... ax1 = fig.add_subplot(121, projection='3d', computed_zorder=False)
-    ... ax1.plot_surface(*unit_sphere(), color='skyblue', alpha=0.6, edgecolor='gray')
-    ... ax1.scatter(*x.T, c=res)
-    ... ax1.plot(*circle(v, r), color="tab:red")
-    ... ax2 = fig.add_subplot(122)
-    ... ax2.scatter(np.arange(len(res)), res, c=res)
-    ... ax2.axhline(0, color="tab:red")
-    """
-    _, D = x.shape
-    if D <= 1:
-        raise ValueError("Data must be on at least 1-sphere.")
-    elif D == 2:
-        rho = np.arctan2(x @ (v @ [[0, 1], [-1, 0]]), x @ v)
-    else:
-        rho = np.arccos(np.dot(x, v.T))
-    return rho - r
 
 
 def pns(x, tol=1e-3, residual="none"):

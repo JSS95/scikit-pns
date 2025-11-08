@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `pns.pns()` now takes `residual` argument.
 - `pns.proj()` now returns residuals.
 
+### Removed
+
+- `pns.residual()` is removed.
+
 ## [1.1.0] - 2025-10-17
 
 ### Added
