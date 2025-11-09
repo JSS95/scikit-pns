@@ -1,6 +1,7 @@
 import numpy as np
 
 from skpns import ExtrinsicPNS, IntrinsicPNS
+from skpns.pns import pss
 from skpns.util import circular_data
 
 np.random.seed(0)
@@ -42,3 +43,18 @@ def test_ExtrinsicPNS_transform_noreduction():
     Xnew = pns.fit_transform(X)
     assert np.all(X == Xnew)
     assert np.all(X == pns.transform(X))
+
+
+def test_pss_zero_norm_fallback():
+    """Test that pss() handles zero norm case when D=2."""
+    # Create data on opposite sides of a circle (zero mean)
+    x = np.array(
+        [
+            [1.0, 0.0],
+            [-1.0, 0.0],
+        ]
+    )
+    v, r = pss(x)
+    # Should return [1, 0] as fallback when mean is zero
+    assert np.allclose(v, [1.0, 0.0])
+    assert r == 0

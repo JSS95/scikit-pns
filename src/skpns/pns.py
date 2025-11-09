@@ -65,7 +65,11 @@ def pss(x, tol=1e-3):
     elif D == 2:
         r = np.int_(0)
         v = np.mean(x, axis=0)
-        v /= np.linalg.norm(v)
+        norm = np.linalg.norm(v)
+        if norm != 0:
+            v /= norm
+        else:
+            v = np.array([1, 0])
     else:
         pole = np.array([0] * (D - 1) + [1])
         R = np.eye(D)
