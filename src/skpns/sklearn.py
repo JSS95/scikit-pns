@@ -29,6 +29,9 @@ class ExtrinsicPNS(TransformerMixin, BaseEstimator):
         Data are transformed onto a unit hypersphere embedded in this dimensional space.
     tol : float, default=1e-3
         Optimization tolerance.
+    maxiter : int, optional
+        Maximum number of iterations for the optimization.
+        If None, the number of iterations is not checked.
 
     Attributes
     ----------
@@ -58,9 +61,10 @@ class ExtrinsicPNS(TransformerMixin, BaseEstimator):
     ... ax2.set_aspect('equal')
     """
 
-    def __init__(self, n_components=2, tol=1e-3):
+    def __init__(self, n_components=2, tol=1e-3, maxiter=None):
         self.n_components = n_components
         self.tol = tol
+        self.maxiter = maxiter
 
     def _fit_transform(self, X):
         self._n_features = X.shape[1]
@@ -68,7 +72,7 @@ class ExtrinsicPNS(TransformerMixin, BaseEstimator):
         self.r_ = []
 
         D = X.shape[1]
-        pns_ = pns(X, self.tol)
+        pns_ = pns(X, self.tol, maxiter=self.maxiter)
         for _ in range(D - self.n_components):
             v, r, X = next(pns_)
             self.v_.append(v)
@@ -178,6 +182,9 @@ class IntrinsicPNS(TransformerMixin, BaseEstimator):
         converted to intrinsic coordinates without loosing dimenisonality.
     tol : float, default=1e-3
         Optimization tolerance.
+    maxiter : int, optional
+        Maximum number of iterations for the optimization.
+        If None, the number of iterations is not checked.
 
     Attributes
     ----------
@@ -228,9 +235,10 @@ class IntrinsicPNS(TransformerMixin, BaseEstimator):
     ... ax2.set_ylim(-np.pi/2, np.pi/2)
     """
 
-    def __init__(self, n_components=None, tol=1e-3):
+    def __init__(self, n_components=None, tol=1e-3, maxiter=None):
         self.n_components = n_components
         self.tol = tol
+        self.maxiter = maxiter
 
     def _fit_transform(self, X):
         if self.n_components is None:
@@ -241,7 +249,7 @@ class IntrinsicPNS(TransformerMixin, BaseEstimator):
         self.r_ = []
 
         residuals = []
-        for v, r, _, Xi in pns(X, self.tol, residual="scaled"):
+        for v, r, _, Xi in pns(X, self.tol, residual="scaled", maxiter=self.maxiter):
             self.v_.append(v)
             self.r_.append(r)
             residuals.append(Xi)

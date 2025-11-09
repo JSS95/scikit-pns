@@ -1,7 +1,9 @@
+import warnings
+
 import numpy as np
 
 from skpns import ExtrinsicPNS, IntrinsicPNS
-from skpns.pns import pss
+from skpns.pns import pns, pss
 from skpns.util import circular_data
 
 np.random.seed(0)
@@ -58,3 +60,37 @@ def test_pss_zero_norm_fallback():
     # Should return [1, 0] as fallback when mean is zero
     assert np.allclose(v, [1.0, 0.0])
     assert r == 0
+
+
+def test_pss_maxiter_warning():
+    X = circular_data()
+    with warnings.catch_warnings(record=True) as w:
+        pss(X, maxiter=1)
+        assert len(w) == 1
+        assert issubclass(w[-1].category, UserWarning)
+
+
+def test_pns_maxiter_warning():
+    X = circular_data()
+    with warnings.catch_warnings(record=True) as w:
+        next(pns(X, maxiter=1))
+        assert len(w) == 1
+        assert issubclass(w[-1].category, UserWarning)
+
+
+def test_ExtrinsicPNS_maxiter_warning():
+    X = circular_data()
+    pns = ExtrinsicPNS(n_components=2, maxiter=1)
+    with warnings.catch_warnings(record=True) as w:
+        pns.fit_transform(X)
+        assert len(w) == 1
+        assert issubclass(w[-1].category, UserWarning)
+
+
+def test_IntrinsicPNS_maxiter_warning():
+    X = circular_data()
+    pns = IntrinsicPNS(n_components=2, maxiter=1)
+    with warnings.catch_warnings(record=True) as w:
+        pns.fit_transform(X)
+        assert len(w) == 1
+        assert issubclass(w[-1].category, UserWarning)
