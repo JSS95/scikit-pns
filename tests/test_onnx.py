@@ -1,13 +1,11 @@
 import numpy as np
 import onnxruntime as rt
-import pytest
 from skl2onnx import to_onnx
 
 from skpns import ExtrinsicPNS, IntrinsicPNS
 from skpns.util import circular_data
 
 
-@pytest.mark.xfail
 def test_IntrinsicPNS_onnx(tmp_path):
     path = tmp_path / "pns.onnx"
 

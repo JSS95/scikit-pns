@@ -35,6 +35,8 @@ Transformers can be converted to ONNX models.
     X = circular_data().astype(np.float32)  # Must be float32
 
     int_pns = IntrinsicPNS(2).fit(X)
+    with open("int_pns.onnx", "wb") as f:
+        f.write(to_onnx(int_pns, X[:1]).SerializeToString())
 
     ext_pns = ExtrinsicPNS(2).fit(X)
     with open("ext_pns.onnx", "wb") as f:
@@ -46,10 +48,14 @@ Transformers can be converted to ONNX models.
     ext_sess = rt.InferenceSession("ext_pns.onnx", providers=["CPUExecutionProvider"])
     ext_onnx = ext_sess.run([ext_sess.get_outputs()[0].name], {ext_sess.get_inputs()[0].name: X})[0]
 
+    int_sess = rt.InferenceSession("int_pns.onnx", providers=["CPUExecutionProvider"])
+    int_onnx = int_sess.run([int_sess.get_outputs()[0].name], {int_sess.get_inputs()[0].name: X})[0]
+
     fig = plt.figure()
 
     ax1 = fig.add_subplot(121)
     ax1.plot(*int_pns.transform(X).T, "o", label="Python runtime")
+    ax1.plot(*int_onnx.T, "x", label="ONNX runtime")
     ax1.set_xlim(-np.pi, np.pi)
     ax1.set_ylim(-np.pi / 2, np.pi / 2)
     ax1.legend()
