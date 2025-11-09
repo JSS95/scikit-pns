@@ -60,7 +60,7 @@ def test_pss_maxiter_warning():
     X = circular_data()
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
-        v, r = pss(X, maxiter=1)
+        pss(X, maxiter=1)
         # Check that a warning was raised
         assert len(w) == 1
         assert issubclass(w[-1].category, UserWarning)
@@ -72,7 +72,7 @@ def test_pss_maxiter_no_warning():
     X = circular_data()
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
-        v, r = pss(X, maxiter=1000)
+        pss(X, maxiter=1000)
         # Check that no warning was raised
         assert len(w) == 0
 
