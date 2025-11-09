@@ -14,10 +14,10 @@ Principal nested spheres analysis for scikit-learn.
 ## Usage
 
 ```python
->>> from skpns import PNS
+>>> from skpns import IntrinsicPNS
 >>> from skpns.util import circular_data
 >>> X = circular_data()
->>> X_new = PNS(n_components=2).fit_transform(X)
+>>> X_new = IntrinsicPNS().fit_transform(X)
 ```
 
 ## Installation
@@ -32,8 +32,8 @@ The manual can be found online:
 
 > https://scikit-pns.readthedocs.io
 
-If you want to build the document yourself, get the source code and install with `[doc]` dependency.
-Then, go to `doc` directory and build the document:
+If you want to build the documentation yourself, get the source code and install with `[doc]` dependency.
+Then, go to the `doc` directory and build the documentation:
 
 ```
 $ pip install .[doc]
@@ -41,7 +41,7 @@ $ cd doc
 $ make html
 ```
 
-Document will be generated in `build/html` directory. Open `index.html` to see the central page.
+The documentation will be generated in the `build/html` directory. Open `index.html` to see the main page.
 
 ## Developing
 

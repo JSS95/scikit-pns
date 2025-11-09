@@ -12,6 +12,25 @@ scikit-pns documentation
 
 .. automodule:: skpns
 
+Installation
+============
+
+scikit-pns can be installed using pip::
+
+    pip install scikit-pns
+
+Quickstart
+==========
+
+scikit-pns is imported as :mod:`skpns`.
+
+.. code-block:: python
+
+    from skpns import IntrinsicPNS
+    from skpns.util import circular_data
+    X = circular_data()
+    X_new = IntrinsicPNS().fit_transform(X)
+
 ONNX support
 ============
 
