@@ -16,7 +16,7 @@ __all__ = [
 ]
 
 
-def pss(x, tol=1e-3):
+def pss(x, tol=1e-3, maxiter=None):
     r"""Find the principal subsphere from data on a hypersphere.
 
     Parameters
@@ -26,6 +26,11 @@ def pss(x, tol=1e-3):
         embedded in a ``d+1``-dimensional space.
     tol : float, default=1e-3
         Convergence tolerance in radian.
+    maxiter : int or None, default=None
+        Maximum number of iterations for the optimization loop.
+        If None, no forced termination is applied.
+        If an integer value is passed, the optimization loop breaks when this
+        number is reached, and a warning is raised.
 
     Returns
     -------
@@ -71,11 +76,22 @@ def pss(x, tol=1e-3):
         R = np.eye(D)
         _x = x
         v, r = _pss(_x)
+        iter_count = 0
         while np.arccos(np.dot(pole, v)) > tol:
+            if maxiter is not None and iter_count >= maxiter:
+                import warnings
+                warnings.warn(
+                    f"Maximum number of iterations ({maxiter}) reached. "
+                    "Optimization may not have converged.",
+                    UserWarning,
+                    stacklevel=2
+                )
+                break
             # Rotate so that v becomes the pole
             _x, _R = _rotate(_x, v)
             v, r = _pss(_x)
             R = R @ _R.T
+            iter_count += 1
         v = R @ v  # re-rotate back
     return v.astype(x.dtype), r.astype(x.dtype)
 
@@ -298,7 +314,7 @@ def from_unit_sphere(x, v, r):
     return reconstruct(x, v, r)
 
 
-def pns(x, tol=1e-3, residual="none"):
+def pns(x, tol=1e-3, residual="none", maxiter=None):
     r"""Principal nested spheres analysis.
 
     Parameters
@@ -311,6 +327,11 @@ def pns(x, tol=1e-3, residual="none"):
         If 'none', do not yield residuals.
         If 'scaled', yield scaled residuals :math:`\Xi`.
         If 'unscaled', yield unscaled residuals :math:`\xi`.
+    maxiter : int or None, default=None
+        Maximum number of iterations for the optimization loop in :func:`pss`.
+        If None, no forced termination is applied.
+        If an integer value is passed, the optimization loop breaks when this
+        number is reached, and a warning is raised.
 
     Yields
     ------
@@ -411,7 +432,7 @@ def pns(x, tol=1e-3, residual="none"):
 
     sin_r = 1
     for _ in range(1, d):  # k=1, ..., (d-1)
-        v, r = pss(x, tol)  # v_k, r_k
+        v, r = pss(x, tol, maxiter)  # v_k, r_k
         P, xi = proj(x, v, r)
         x_dagger = embed(P, v, r)
 
@@ -428,7 +449,7 @@ def pns(x, tol=1e-3, residual="none"):
         sin_r *= np.sin(r)
 
     # k=d
-    v, r = pss(x, tol)
+    v, r = pss(x, tol, maxiter)
     _, xi = proj(x, v, r)
     x_dagger = np.full((len(x), 1), 0, dtype=x.dtype)
 
