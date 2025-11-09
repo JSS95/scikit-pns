@@ -314,7 +314,7 @@ class IntrinsicPNS(TransformerMixin, BaseEstimator):
             residuals.append(Xi)
             sin_r *= np.sin(r)
 
-        v, r = self.v_[k], self.r_[k]
+        v, r = self.v_[d - 1], self.r_[d - 1]
         _, xi = proj(X, v, r)
         Xi = sin_r * xi
         residuals.append(Xi)
