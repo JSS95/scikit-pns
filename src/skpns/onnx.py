@@ -69,10 +69,10 @@ def extrinsicpns_converter(scope, operator, container):
     X = operator.inputs[0]
 
     for v, r in zip(op.v_[:-1], op.r_[:-1]):
-        v, r = v, r.reshape(1)
+        v, r = v.astype(np.float32), r.reshape(1).astype(np.float32)
         P, _ = onnx_proj(X, v, r, opv)
         X = onnx_embed(P, v, r, opv)
-    v, r = op.v_[-1], op.r_[-1].reshape(1)
+    v, r = op.v_[-1].astype(np.float32), op.r_[-1].reshape(1).astype(np.float32)
     P, _ = onnx_proj(X, v, r, opv)
     X = onnx_embed(P, v, r, opv, out[:1])
     X.add_to(scope, container)
