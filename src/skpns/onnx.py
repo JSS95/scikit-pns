@@ -1,7 +1,7 @@
 """Custom ONNX converter for PNS."""
 
 import numpy as np
-import pns
+import pns as pnspy
 from skl2onnx.algebra.onnx_ops import (
     OnnxAcos,
     OnnxAdd,
@@ -144,7 +144,7 @@ def extrinsicpns_converter(scope, operator, container):
     opv = container.target_opset
     out = operator.outputs
 
-    proj = pns.transform.Project(
+    proj = pnspy.transform.Project(
         lambda a, b: OnnxAdd(a, b, op_version=opv),
         lambda a, b: OnnxSub(a, b, op_version=opv),
         lambda a, b: OnnxMul(a, b, op_version=opv),
@@ -155,11 +155,12 @@ def extrinsicpns_converter(scope, operator, container):
         lambda a, b: OnnxMatMul(a, b, op_version=opv),
         dtype=np.float32,
     )
-    embed = pns.transform.Embed(
+    embed = pnspy.transform.Embed(
         lambda a, b, **kwargs: OnnxMatMul(a, b, op_version=opv, **kwargs),
         dtype=np.float32,
     )
-    extrinsic_pns = pns.transform.ExtrinsicPNS(proj, embed, dtype=np.float32)
+    # reconstruction function will not be used in this converter so pass None.
+    extrinsic_pns = pnspy.ExtrinsicPNS(proj, embed, None, dtype=np.float32)
 
     X = operator.inputs[0]
     x = extrinsic_pns(X, op.v_, op.r_, dict(output_names=out[:1]))
