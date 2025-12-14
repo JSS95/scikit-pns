@@ -1,6 +1,7 @@
 """Custom ONNX converter for PNS."""
 
 import numpy as np
+import pns
 from skl2onnx.algebra.onnx_ops import (
     OnnxAcos,
     OnnxAdd,
@@ -59,23 +60,6 @@ def intrinsicpns_converter(scope, operator, container):
     ret = list(reversed(residuals))[: op.n_components]
     ret = OnnxConcat(*ret, axis=-1, op_version=opv, output_names=out[:1])
     ret.add_to(scope, container)
-
-
-def extrinsicpns_converter(scope, operator, container):
-    op = operator.raw_operator
-    opv = container.target_opset
-    out = operator.outputs
-
-    X = operator.inputs[0]
-
-    for v, r in zip(op.v_[:-1], op.r_[:-1]):
-        v, r = v.astype(np.float32), r.reshape(1).astype(np.float32)
-        P, _ = onnx_proj(X, v, r, opv)
-        X = onnx_embed(P, v, r, opv)
-    v, r = op.v_[-1].astype(np.float32), op.r_[-1].reshape(1).astype(np.float32)
-    P, _ = onnx_proj(X, v, r, opv)
-    X = onnx_embed(P, v, r, opv, out[:1])
-    X.add_to(scope, container)
 
 
 def onnx_proj(X, v, r, opv, outnames=None):
@@ -153,3 +137,37 @@ def OnnxAtan2(y, x, op_version):
         ),
         op_version=op_version,
     )
+
+
+def extrinsicpns_converter(scope, operator, container):
+    op = operator.raw_operator
+    opv = container.target_opset
+    out = operator.outputs
+
+    onnx_pnspy_proj = pns.transform.Project(
+        lambda a, b: OnnxAdd(a, b, op_version=opv),
+        lambda a, b: OnnxSub(a, b, op_version=opv),
+        lambda a, b: OnnxMul(a, b, op_version=opv),
+        lambda a, b: OnnxDiv(a, b, op_version=opv),
+        lambda a: OnnxSin(a, op_version=opv),
+        lambda a: OnnxAcos(a, op_version=opv),
+        lambda y, x: OnnxAtan2(y, x, op_version=opv),
+        lambda a, b: OnnxMatMul(a, b, op_version=opv),
+        dtype=np.float32,
+    )
+
+    onnx_pnspy_embed = pns.transform.Embed(
+        lambda a, b: OnnxMatMul(a, b, op_version=opv, output_names=out[:1]),
+        dtype=np.float32,
+    )
+
+    X = operator.inputs[0]
+
+    for v, r in zip(op.v_[:-1], op.r_[:-1]):
+        v, r = v.astype(np.float32), r.reshape(1).astype(np.float32)
+        P, _ = onnx_pnspy_proj(X, v, r)
+        X = onnx_pnspy_embed(P, v, r)
+    v, r = op.v_[-1].astype(np.float32), op.r_[-1].reshape(1).astype(np.float32)
+    P, _ = onnx_pnspy_proj(X, v, r)
+    X = onnx_pnspy_embed(P, v, r)
+    X.add_to(scope, container)
