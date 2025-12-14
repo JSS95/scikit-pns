@@ -1,6 +1,7 @@
 """Scikit-learn wrappers for PNS."""
 
 import numpy as np
+import pns as pnspy
 from sklearn.base import BaseEstimator, TransformerMixin
 
 from .pns import embed, pns, proj, reconstruct
@@ -32,6 +33,9 @@ class ExtrinsicPNS(TransformerMixin, BaseEstimator):
     maxiter : int, optional
         Maximum number of iterations for the optimization.
         If None, the number of iterations is not checked.
+    lm_kwargs : dict, optional
+        Additional keyword arguments to be passed for Levenberg-Marquardt optimization.
+        Follows the signature of :func:`scipy.optimize.least_squares`.
 
     Attributes
     ----------
@@ -61,23 +65,21 @@ class ExtrinsicPNS(TransformerMixin, BaseEstimator):
     ... ax2.set_aspect('equal')
     """
 
-    def __init__(self, n_components=2, tol=1e-3, maxiter=None):
+    def __init__(self, n_components=2, tol=1e-3, maxiter=None, lm_kwargs=None):
         self.n_components = n_components
         self.tol = tol
         self.maxiter = maxiter
+        self.lm_kwargs = lm_kwargs
 
     def _fit_transform(self, X):
         self._n_features = X.shape[1]
-        self.v_ = []
-        self.r_ = []
-
-        D = X.shape[1]
-        pns_ = pns(X, self.tol, maxiter=self.maxiter)
-        for _ in range(D - self.n_components):
-            v, r, X = next(pns_)
-            self.v_.append(v)
-            self.r_.append(r)
-        self.embedding_ = X
+        self.v_, self.r_, _, self.embedding_ = pnspy.pns(
+            X,
+            self.n_components,
+            tol=self.tol,
+            maxiter=self.maxiter,
+            lm_kwargs=self.lm_kwargs,
+        )
 
     def fit(self, X, y=None):
         """Find principal nested spheres for the data X.
@@ -135,8 +137,8 @@ class ExtrinsicPNS(TransformerMixin, BaseEstimator):
             )
 
         for v, r in zip(self.v_, self.r_):
-            A, _ = proj(X, v, r)
-            X = embed(A, v, r)
+            A, _ = pnspy.transform.project(X, v, r)
+            X = pnspy.transform.embed(A, v, r)
         return X
 
     def inverse_transform(self, X):
@@ -151,12 +153,8 @@ class ExtrinsicPNS(TransformerMixin, BaseEstimator):
         X_new : array-like of shape (n_samples, n_features)
         """
         for v, r in zip(reversed(self.v_), reversed(self.r_)):
-            X = reconstruct(X, v, r)
+            X = pnspy.transform.reconstruct(X, v, r)
         return X
-
-    def to_hypersphere(self, X):
-        """Alias for :meth:`inverse_transform`."""
-        return self.inverse_transform(X)
 
 
 PNS = ExtrinsicPNS
