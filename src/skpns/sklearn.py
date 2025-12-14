@@ -8,6 +8,7 @@ from .pns import embed, pns, proj, reconstruct
 
 __all__ = [
     "ExtrinsicPNS",
+    "InverseExtrinsicPNS",
     "PNS",
     "IntrinsicPNS",
 ]
@@ -149,6 +150,31 @@ class ExtrinsicPNS(TransformerMixin, BaseEstimator):
         X_new : array-like of shape (n_samples, n_features)
         """
         return pnspy.inverse_extrinsic_pns(X, self.v_, self.r_)
+
+
+class InverseExtrinsicPNS(TransformerMixin, BaseEstimator):
+    """Inverse converter of :class:`ExtrinsicPNS`.
+
+    This class is for building ONNX graph and not intended to be used directly.
+    Use :meth:`ExtrinsicPNS.inverse_transform` instead in Python runtime.
+
+    Parameters
+    ----------
+    extrinsic_pns : ExtrinsicPNS
+        Fitted :class:`ExtrinsicPNS` instance.
+    """
+
+    def __init__(self, extrinsic_pns):
+        self.extrinsic_pns = extrinsic_pns
+
+    def fit(self, X, y=None):
+        raise NotImplementedError
+
+    def fit_transform(self, X, y=None, **fit_params):
+        raise NotImplementedError
+
+    def transform(self, X):
+        return self.extrinsic_pns.inverse_transform(X)
 
 
 PNS = ExtrinsicPNS
