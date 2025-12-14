@@ -144,7 +144,7 @@ def extrinsicpns_converter(scope, operator, container):
     opv = container.target_opset
     out = operator.outputs
 
-    onnx_pnspy_proj = pns.transform.Project(
+    proj = pns.transform.Project(
         lambda a, b: OnnxAdd(a, b, op_version=opv),
         lambda a, b: OnnxSub(a, b, op_version=opv),
         lambda a, b: OnnxMul(a, b, op_version=opv),
@@ -155,19 +155,12 @@ def extrinsicpns_converter(scope, operator, container):
         lambda a, b: OnnxMatMul(a, b, op_version=opv),
         dtype=np.float32,
     )
-
-    onnx_pnspy_embed = pns.transform.Embed(
-        lambda a, b: OnnxMatMul(a, b, op_version=opv, output_names=out[:1]),
+    embed = pns.transform.Embed(
+        lambda a, b, **kwargs: OnnxMatMul(a, b, op_version=opv, **kwargs),
         dtype=np.float32,
     )
+    extrinsic_pns = pns.transform.ExtrinsicPNS(proj, embed, dtype=np.float32)
 
     X = operator.inputs[0]
-
-    for v, r in zip(op.v_[:-1], op.r_[:-1]):
-        v, r = v.astype(np.float32), r.reshape(1).astype(np.float32)
-        P, _ = onnx_pnspy_proj(X, v, r)
-        X = onnx_pnspy_embed(P, v, r)
-    v, r = op.v_[-1].astype(np.float32), op.r_[-1].reshape(1).astype(np.float32)
-    P, _ = onnx_pnspy_proj(X, v, r)
-    X = onnx_pnspy_embed(P, v, r)
-    X.add_to(scope, container)
+    x = extrinsic_pns(X, op.v_, op.r_, dict(output_names=out[:1]))
+    x.add_to(scope, container)
