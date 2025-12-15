@@ -19,8 +19,10 @@ from .pns import _R
 
 __all__ = [
     "shape_calculator",
+    "inverse_shape_calculator",
     "intrinsicpns_converter",
     "extrinsicpns_converter",
+    "inverse_extrinsicpns_converter",
 ]
 
 
@@ -30,6 +32,10 @@ def shape_calculator(operator):
     input_dim = operator.inputs[0].get_first_dimension()
     output_type = input_type([input_dim, op.n_components])
     operator.outputs[0].type = output_type
+
+
+def inverse_shape_calculator(operator):
+    raise NotImplementedError
 
 
 def intrinsicpns_converter(scope, operator, container):
@@ -165,3 +171,7 @@ def extrinsicpns_converter(scope, operator, container):
     X = operator.inputs[0]
     x = extrinsic_pns(X, op.v_, op.r_, dict(output_names=out[:1]))
     x.add_to(scope, container)
+
+
+def inverse_extrinsicpns_converter(scope, operator, container):
+    raise NotImplementedError
