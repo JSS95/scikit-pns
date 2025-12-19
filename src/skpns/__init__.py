@@ -22,7 +22,6 @@ try:
         extrinsicpns_converter,
         intrinsicpns_converter,
         inverse_extrinsicpns_converter,
-        inverse_shape_calculator,
         shape_calculator,
     )
 
@@ -41,7 +40,7 @@ try:
     update_registered_converter(
         InverseExtrinsicPNS,
         "SkpnsInverseExtrinsicPNS",
-        inverse_shape_calculator,
+        shape_calculator,
         inverse_extrinsicpns_converter,
     )
 

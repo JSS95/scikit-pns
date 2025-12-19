@@ -162,16 +162,22 @@ class InverseExtrinsicPNS(TransformerMixin, BaseEstimator):
     ----------
     extrinsic_pns : ExtrinsicPNS
         Fitted :class:`ExtrinsicPNS` instance.
+
+    Examples
+    --------
+    >>> from skpns import ExtrinsicPNS, InverseExtrinsicPNS
+    >>> from skpns.util import circular_data
+    >>> from skl2onnx import to_onnx
+    >>> X = circular_data().astype('float32')
+    >>> pns = ExtrinsicPNS(n_components=2).fit(X)
+    >>> onnx = to_onnx(InverseExtrinsicPNS(pns), X[:1])
     """
 
     def __init__(self, extrinsic_pns):
         self.extrinsic_pns = extrinsic_pns
-
-    def fit(self, X, y=None):
-        raise NotImplementedError
-
-    def fit_transform(self, X, y=None, **fit_params):
-        raise NotImplementedError
+        self.v_ = extrinsic_pns.v_
+        self.r_ = extrinsic_pns.r_
+        self.n_components = extrinsic_pns._n_features
 
     def transform(self, X):
         return self.extrinsic_pns.inverse_transform(X)

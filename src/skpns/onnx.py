@@ -7,9 +7,12 @@ from skl2onnx.algebra.onnx_ops import (
     OnnxAdd,
     OnnxAtan,
     OnnxConcat,
+    OnnxConstantOfShape,
     OnnxDiv,
+    OnnxGather,
     OnnxMatMul,
     OnnxMul,
+    OnnxShape,
     OnnxSin,
     OnnxSqrt,
     OnnxSub,
@@ -19,7 +22,6 @@ from .pns import _R
 
 __all__ = [
     "shape_calculator",
-    "inverse_shape_calculator",
     "intrinsicpns_converter",
     "extrinsicpns_converter",
     "inverse_extrinsicpns_converter",
@@ -32,10 +34,6 @@ def shape_calculator(operator):
     input_dim = operator.inputs[0].get_first_dimension()
     output_type = input_type([input_dim, op.n_components])
     operator.outputs[0].type = output_type
-
-
-def inverse_shape_calculator(operator):
-    raise NotImplementedError
 
 
 def intrinsicpns_converter(scope, operator, container):
@@ -174,4 +172,34 @@ def extrinsicpns_converter(scope, operator, container):
 
 
 def inverse_extrinsicpns_converter(scope, operator, container):
-    raise NotImplementedError
+    op = operator.raw_operator
+    opv = container.target_opset
+    out = operator.outputs
+
+    def onn_full(arr, val):
+        N = OnnxGather(
+            OnnxShape(arr, op_version=opv),
+            np.array([0], dtype=np.int64),
+            op_version=opv,
+        )
+        shape = OnnxConcat(N, np.array([1], dtype=np.int64), axis=0, op_version=opv)
+        ones = OnnxConstantOfShape(
+            shape, value=np.array([1.0], dtype=np.float32), op_version=opv
+        )
+        return OnnxMul(ones, val, op_version=opv)
+
+    reconstruct = pnspy.transform.Reconstruct(
+        lambda a, b: OnnxMul(a, b, op_version=opv),
+        lambda a: np.sin([a], dtype=np.float32),
+        lambda a: np.cos([a], dtype=np.float32),
+        onn_full,
+        lambda args: OnnxConcat(*args, axis=1, op_version=opv),
+        lambda a, b, **kwargs: OnnxMatMul(a, b, op_version=opv, **kwargs),
+        np.float32,
+    )
+    # will only use reconstruction, so pass None to other arguments
+    extrinsic_pns = pnspy.ExtrinsicPNS(None, None, reconstruct, dtype=np.float32)
+
+    X = operator.inputs[0]
+    x = extrinsic_pns.inverse(X, op.v_, op.r_, dict(output_names=out[:1]))
+    x.add_to(scope, container)
