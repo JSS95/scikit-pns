@@ -148,27 +148,40 @@ def extrinsicpns_converter(scope, operator, container):
     opv = container.target_opset
     out = operator.outputs
 
-    proj = pnspy.transform.Project(
-        lambda a, b: OnnxAdd(a, b, op_version=opv),
-        lambda a, b: OnnxSub(a, b, op_version=opv),
-        lambda a, b: OnnxMul(a, b, op_version=opv),
-        lambda a, b: OnnxDiv(a, b, op_version=opv),
-        lambda a: OnnxSin(a, op_version=opv),
-        lambda a: OnnxAcos(a, op_version=opv),
-        lambda y, x: OnnxAtan2(y, x, op_version=opv),
-        lambda a, b: OnnxMatMul(a, b, op_version=opv),
-        dtype=np.float32,
-    )
-    embed = pnspy.transform.Embed(
-        lambda a, b, **kwargs: OnnxMatMul(a, b, op_version=opv, **kwargs),
-        dtype=np.float32,
-    )
-    # reconstruction function will not be used in this converter so pass None.
-    extrinsic_pns = pnspy.ExtrinsicPNS(proj, embed, None, dtype=np.float32)
-
     X = operator.inputs[0]
-    x = extrinsic_pns(X, op.v_, op.r_, dict(output_names=out[:1]))
-    x.add_to(scope, container)
+
+    for v, r in zip(op.v_[:-1], op.r_[:-1]):
+        v, r = v, r.reshape(1).astype(np.float32)
+        P, _ = onnx_proj(X, v, r, opv)
+        X = onnx_embed(P, v, r, opv)
+    v, r = op.v_[-1], op.r_[-1].reshape(1).astype(np.float32)
+    P, _ = onnx_proj(X, v, r, opv)
+    X = onnx_embed(P, v, r, opv, out[:1])
+    X.add_to(scope, container)
+
+
+def onnx_full(arr, val, opv):
+    N = OnnxGather(
+        OnnxShape(arr, op_version=opv),
+        np.array([0], dtype=np.int64),
+        op_version=opv,
+    )
+    shape = OnnxConcat(N, np.array([1], dtype=np.int64), axis=0, op_version=opv)
+    ones = OnnxConstantOfShape(
+        shape, value=np.array([1.0], dtype=np.float32), op_version=opv
+    )
+    return OnnxMul(ones, val, op_version=opv)
+
+
+def onnx_reconstruct(x, v, r, opv, outnames=None):
+    R = pnspy.base.rotation_matrix(v).astype(np.float32)
+    vec = OnnxConcat(
+        OnnxMul(np.array(np.sin(r)), x, op_version=opv),
+        onnx_full(x, np.array(np.cos(r)), opv),
+        axis=1,
+        op_version=opv,
+    )
+    return OnnxMatMul(vec, R, op_version=opv, output_names=outnames)
 
 
 def inverse_extrinsicpns_converter(scope, operator, container):
@@ -176,30 +189,11 @@ def inverse_extrinsicpns_converter(scope, operator, container):
     opv = container.target_opset
     out = operator.outputs
 
-    def onn_full(arr, val):
-        N = OnnxGather(
-            OnnxShape(arr, op_version=opv),
-            np.array([0], dtype=np.int64),
-            op_version=opv,
-        )
-        shape = OnnxConcat(N, np.array([1], dtype=np.int64), axis=0, op_version=opv)
-        ones = OnnxConstantOfShape(
-            shape, value=np.array([1.0], dtype=np.float32), op_version=opv
-        )
-        return OnnxMul(ones, val, op_version=opv)
-
-    reconstruct = pnspy.transform.Reconstruct(
-        lambda a, b: OnnxMul(a, b, op_version=opv),
-        lambda a: np.sin([a], dtype=np.float32),
-        lambda a: np.cos([a], dtype=np.float32),
-        onn_full,
-        lambda args: OnnxConcat(*args, axis=1, op_version=opv),
-        lambda a, b, **kwargs: OnnxMatMul(a, b, op_version=opv, **kwargs),
-        np.float32,
-    )
-    # will only use reconstruction, so pass None to other arguments
-    extrinsic_pns = pnspy.ExtrinsicPNS(None, None, reconstruct, dtype=np.float32)
-
-    X = operator.inputs[0]
-    x = extrinsic_pns.inverse(X, op.v_, op.r_, dict(output_names=out[:1]))
+    x = operator.inputs[0]
+    for i, (v, r) in enumerate(zip(reversed(op.v_), reversed(op.r_))):
+        r = r.astype(np.float32)
+        if i < len(op.v_) - 1:
+            x = onnx_reconstruct(x, v, r, opv)
+        else:
+            x = onnx_reconstruct(x, v, r, opv, out[:1])
     x.add_to(scope, container)
