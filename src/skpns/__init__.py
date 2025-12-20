@@ -13,6 +13,7 @@ __all__ = [
     "ExtrinsicPNS",
     "PNS",
     "IntrinsicPNS",
+    "InverseExtrinsicPNS",
 ]
 
 try:

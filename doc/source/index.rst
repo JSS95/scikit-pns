@@ -43,6 +43,7 @@ Transformers can be converted to ONNX models.
         pip install scikit-pns[onnx]
 
 .. plot::
+    :context: reset
 
     import numpy as np
     from skpns import ExtrinsicPNS, IntrinsicPNS
@@ -89,6 +90,37 @@ Transformers can be converted to ONNX models.
 
     fig.show()
 
+Converting inverse transformers
+-------------------------------
+
+ONNX model for transformer only supports forward transformation.
+To build a model for inverse transformation, use dedicated wrapper instead.
+
+.. plot::
+    :context: close-figs
+
+    from skpns import InverseExtrinsicPNS
+    from skpns.util import unit_sphere
+
+    X_transform = ext_pns.transform(X).astype(np.float32)
+
+    invext_pns = InverseExtrinsicPNS(ext_pns)
+    with open("invext_pns.onnx", "wb") as f:
+        f.write(to_onnx(invext_pns, X_transform[:1]).SerializeToString())
+
+    invext_sess = rt.InferenceSession("invext_pns.onnx", providers=["CPUExecutionProvider"])
+    invext_onnx = invext_sess.run(
+        [invext_sess.get_outputs()[0].name], {invext_sess.get_inputs()[0].name: X_transform}
+    )[0]
+
+    fig = plt.figure()
+    ax = fig.add_subplot(projection='3d', computed_zorder=False)
+    ax.plot_surface(*unit_sphere(), color='skyblue', edgecolor='gray')
+    ax.plot(*ext_pns.inverse_transform(X_transform).T, "o", label="Python runtime")
+    ax.plot(*invext_onnx.T, "x", label="ONNX runtime")
+    ax.legend()
+
+    fig.show()
 
 Module reference
 ================
