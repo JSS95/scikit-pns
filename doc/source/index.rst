@@ -134,6 +134,17 @@ High-level API
 .. autoclass:: skpns.ExtrinsicPNS
     :members:
 
+Inverse transformers
+^^^^^^^^^^^^^^^^^^^^
+
+.. note::
+
+    These classes are intended to support conversion of inverse transformation subroutines to ONNX graph.
+    In Python runtime, use ``inverse_transform()`` method of transformers instead of these classes.
+
+.. autoclass:: skpns.InverseExtrinsicPNS
+    :members:
+
 Low-level functions
 -------------------
 
