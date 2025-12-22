@@ -7,7 +7,12 @@ Low-level functions are available in :mod:`skpns.pns`.
        "Analysis of principal nested spheres." Biometrika 99.3 (2012): 551-568.
 """
 
-from .sklearn import ExtrinsicPNS, IntrinsicPNS, InverseExtrinsicPNS
+from .sklearn import (
+    ExtrinsicPNS,
+    IntrinsicPNS,
+    InverseExtrinsicPNS,
+    InverseIntrinsicPNS,
+)
 
 __all__ = [
     "ExtrinsicPNS",
@@ -22,6 +27,7 @@ try:
         extrinsicpns_converter,
         intrinsicpns_converter,
         inverse_extrinsicpns_converter,
+        inverse_intrinsicpns_converter,
         shape_calculator,
     )
 
@@ -42,6 +48,12 @@ try:
         "SkpnsInverseExtrinsicPNS",
         shape_calculator,
         inverse_extrinsicpns_converter,
+    )
+    update_registered_converter(
+        InverseIntrinsicPNS,
+        "SkpnsInverseIntrinsicPNS",
+        shape_calculator,
+        inverse_intrinsicpns_converter,
     )
 
 except ModuleNotFoundError:

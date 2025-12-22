@@ -8,6 +8,7 @@ __all__ = [
     "ExtrinsicPNS",
     "InverseExtrinsicPNS",
     "IntrinsicPNS",
+    "InverseIntrinsicPNS",
 ]
 
 
@@ -366,3 +367,34 @@ class IntrinsicPNS(TransformerMixin, BaseEstimator):
         ... ax.scatter(*X_inv.T)
         """
         return pnspy.inverse_intrinsic_transform(Xi, self.v_, self.r_)
+
+
+class InverseIntrinsicPNS(TransformerMixin, BaseEstimator):
+    """Inverse converter of :class:`IntrinsicPNS`.
+
+    This class is for building ONNX graph and not intended to be used directly.
+    Use :meth:`IntrinsicPNS.inverse_transform` instead in Python runtime.
+
+    Parameters
+    ----------
+    intrinsic_pns : IntrinsicPNS
+        Fitted :class:`IntrinsicPNS` instance.
+
+    Examples
+    --------
+    >>> from skpns import IntrinsicPNS, InverseIntrinsicPNS
+    >>> from pns.util import circular_data
+    >>> from skl2onnx import to_onnx
+    >>> X = circular_data().astype('float32')
+    >>> pns = IntrinsicPNS(n_components=2).fit(X)
+    >>> onnx = to_onnx(InverseIntrinsicPNS(pns), X[:1])
+    """
+
+    def __init__(self, intrinsic_pns):
+        self.intrinsic_pns = intrinsic_pns
+        self.v_ = intrinsic_pns.v_
+        self.r_ = intrinsic_pns.r_
+        self.n_components = intrinsic_pns._n_features
+
+    def transform(self, X):
+        return self.intrinsic_pns.inverse_transform(X)

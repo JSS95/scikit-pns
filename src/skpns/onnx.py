@@ -23,6 +23,7 @@ __all__ = [
     "intrinsicpns_converter",
     "extrinsicpns_converter",
     "inverse_extrinsicpns_converter",
+    "inverse_intrinsicpns_converter",
 ]
 
 
@@ -48,14 +49,14 @@ def intrinsicpns_converter(scope, operator, container):
     sin_r = np.array(1.0, dtype=np.float32)
     for k in range(1, d):
         v, r = op.v_[k - 1], op.r_[k - 1].reshape(1)
-        P, xi = onnx_proj(X, v, r, opv)
+        P, xi = onnx_project(X, v, r, opv)
         X = onnx_embed(P, v, r, opv)
         Xi = OnnxMul(sin_r, xi, op_version=opv)
         residuals.append(Xi)
         sin_r = (sin_r * np.sin(r)).astype(np.float32)
 
     v, r = op.v_[d - 1], op.r_[d - 1].reshape(1)
-    _, xi = onnx_proj(X, v, r, opv)
+    _, xi = onnx_project(X, v, r, opv)
     Xi = OnnxMul(sin_r, xi, op_version=opv)
     residuals.append(Xi)
 
@@ -64,7 +65,7 @@ def intrinsicpns_converter(scope, operator, container):
     ret.add_to(scope, container)
 
 
-def onnx_proj(X, v, r, opv, outnames=None):
+def onnx_project(X, v, r, opv, outnames=None):
     if v.shape[0] > 2:
         rho = OnnxAcos(
             OnnxMatMul(X, v.reshape(-1, 1), op_version=opv),
@@ -92,6 +93,21 @@ def onnx_proj(X, v, r, opv, outnames=None):
         output_names=outnames,
     )  # (N, d+1)
     return P, OnnxSub(rho, r, op_version=opv, output_names=outnames)
+
+
+def onnx_inverse_project(xP, res, v, r, opv, outnames=None):
+    rho = OnnxAdd(res, r, op_version=opv)
+    numerator = OnnxSub(
+        OnnxMul(xP, OnnxSin(rho, op_version=opv), op_version=opv),
+        OnnxMul(OnnxSin(res, op_version=opv), v, op_version=opv),
+        op_version=opv,
+    )
+    return OnnxDiv(
+        numerator,
+        np.sin(r).astype(np.float32),
+        op_version=opv,
+        output_names=outnames,
+    )
 
 
 def onnx_embed(x, v, r, opv, outnames=None):
@@ -150,10 +166,10 @@ def extrinsicpns_converter(scope, operator, container):
 
     for v, r in zip(op.v_[:-1], op.r_[:-1]):
         v, r = v, r.reshape(1).astype(np.float32)
-        P, _ = onnx_proj(X, v, r, opv)
+        P, _ = onnx_project(X, v, r, opv)
         X = onnx_embed(P, v, r, opv)
     v, r = op.v_[-1], op.r_[-1].reshape(1).astype(np.float32)
-    P, _ = onnx_proj(X, v, r, opv)
+    P, _ = onnx_project(X, v, r, opv)
     X = onnx_embed(P, v, r, opv, out[:1])
     X.add_to(scope, container)
 
@@ -195,3 +211,7 @@ def inverse_extrinsicpns_converter(scope, operator, container):
         else:
             x = onnx_reconstruct(x, v, r, opv, out[:1])
     x.add_to(scope, container)
+
+
+def inverse_intrinsicpns_converter(scope, operator, container):
+    raise NotImplementedError
