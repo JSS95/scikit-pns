@@ -1,13 +1,12 @@
 """Scikit-learn wrappers for PNS."""
 
 import numpy as np
+import pns as pnspy
 from sklearn.base import BaseEstimator, TransformerMixin
-
-from .pns import embed, pns, proj, reconstruct
 
 __all__ = [
     "ExtrinsicPNS",
-    "PNS",
+    "InverseExtrinsicPNS",
     "IntrinsicPNS",
 ]
 
@@ -32,6 +31,9 @@ class ExtrinsicPNS(TransformerMixin, BaseEstimator):
     maxiter : int, optional
         Maximum number of iterations for the optimization.
         If None, the number of iterations is not checked.
+    lm_kwargs : dict, optional
+        Additional keyword arguments to be passed for Levenberg-Marquardt optimization.
+        Follows the signature of :func:`scipy.optimize.least_squares`.
 
     Attributes
     ----------
@@ -45,8 +47,8 @@ class ExtrinsicPNS(TransformerMixin, BaseEstimator):
     Examples
     --------
     >>> from skpns import ExtrinsicPNS
-    >>> from skpns.util import circular_data, unit_sphere
-    >>> X = circular_data()
+    >>> from pns.util import circular_data, unit_sphere
+    >>> X = circular_data([0, -1, 0])
     >>> pns = ExtrinsicPNS(n_components=2)
     >>> X_reduced = pns.fit_transform(X)
     >>> X_inv = pns.inverse_transform(X_reduced)
@@ -61,23 +63,21 @@ class ExtrinsicPNS(TransformerMixin, BaseEstimator):
     ... ax2.set_aspect('equal')
     """
 
-    def __init__(self, n_components=2, tol=1e-3, maxiter=None):
+    def __init__(self, n_components=2, tol=1e-3, maxiter=None, lm_kwargs=None):
         self.n_components = n_components
         self.tol = tol
         self.maxiter = maxiter
+        self.lm_kwargs = lm_kwargs
 
     def _fit_transform(self, X):
         self._n_features = X.shape[1]
-        self.v_ = []
-        self.r_ = []
-
-        D = X.shape[1]
-        pns_ = pns(X, self.tol, maxiter=self.maxiter)
-        for _ in range(D - self.n_components):
-            v, r, X = next(pns_)
-            self.v_.append(v)
-            self.r_.append(r)
-        self.embedding_ = X
+        self.v_, self.r_, _, self.embedding_ = pnspy.pns(
+            X,
+            self.n_components,
+            tol=self.tol,
+            maxiter=self.maxiter,
+            lm_kwargs=self.lm_kwargs,
+        )
 
     def fit(self, X, y=None):
         """Find principal nested spheres for the data X.
@@ -133,11 +133,7 @@ class ExtrinsicPNS(TransformerMixin, BaseEstimator):
                 f"Input dimension {X.shape[1]} does not match "
                 f"fitted dimension {self._n_features}."
             )
-
-        for v, r in zip(self.v_, self.r_):
-            A, _ = proj(X, v, r)
-            X = embed(A, v, r)
-        return X
+        return pnspy.extrinsic_transform(X, self.v_, self.r_)
 
     def inverse_transform(self, X):
         """Transform the low-dimensional data back to the original hypersphere.
@@ -150,16 +146,38 @@ class ExtrinsicPNS(TransformerMixin, BaseEstimator):
         -------
         X_new : array-like of shape (n_samples, n_features)
         """
-        for v, r in zip(reversed(self.v_), reversed(self.r_)):
-            X = reconstruct(X, v, r)
-        return X
-
-    def to_hypersphere(self, X):
-        """Alias for :meth:`inverse_transform`."""
-        return self.inverse_transform(X)
+        return pnspy.inverse_extrinsic_transform(X, self.v_, self.r_)
 
 
-PNS = ExtrinsicPNS
+class InverseExtrinsicPNS(TransformerMixin, BaseEstimator):
+    """Inverse converter of :class:`ExtrinsicPNS`.
+
+    This class is for building ONNX graph and not intended to be used directly.
+    Use :meth:`ExtrinsicPNS.inverse_transform` instead in Python runtime.
+
+    Parameters
+    ----------
+    extrinsic_pns : ExtrinsicPNS
+        Fitted :class:`ExtrinsicPNS` instance.
+
+    Examples
+    --------
+    >>> from skpns import ExtrinsicPNS, InverseExtrinsicPNS
+    >>> from pns.util import circular_data
+    >>> from skl2onnx import to_onnx
+    >>> X = circular_data().astype('float32')
+    >>> pns = ExtrinsicPNS(n_components=2).fit(X)
+    >>> onnx = to_onnx(InverseExtrinsicPNS(pns), X[:1])
+    """
+
+    def __init__(self, extrinsic_pns):
+        self.extrinsic_pns = extrinsic_pns
+        self.v_ = extrinsic_pns.v_
+        self.r_ = extrinsic_pns.r_
+        self.n_components = extrinsic_pns._n_features
+
+    def transform(self, X):
+        return self.extrinsic_pns.inverse_transform(X)
 
 
 class IntrinsicPNS(TransformerMixin, BaseEstimator):
@@ -198,6 +216,9 @@ class IntrinsicPNS(TransformerMixin, BaseEstimator):
     r_ : ndarray
         Principal radii of nested spheres,
         :math:`\hat{r}_1, \hat{r}_2, \ldots, \hat{r}_d`.
+    lm_kwargs : dict, optional
+        Additional keyword arguments to be passed for Levenberg-Marquardt optimization.
+        Follows the signature of :func:`scipy.optimize.least_squares`.
 
     Notes
     -----
@@ -219,9 +240,10 @@ class IntrinsicPNS(TransformerMixin, BaseEstimator):
 
     Examples
     --------
+    >>> import numpy as np
     >>> from skpns import IntrinsicPNS
-    >>> from skpns.util import circular_data, unit_sphere
-    >>> X = circular_data()
+    >>> from pns.util import circular_data, unit_sphere
+    >>> X = circular_data([0, -1, 0])
     >>> pns = IntrinsicPNS()
     >>> Xi = pns.fit_transform(X)
     >>> import matplotlib.pyplot as plt  # doctest: +SKIP
@@ -235,25 +257,32 @@ class IntrinsicPNS(TransformerMixin, BaseEstimator):
     ... ax2.set_ylim(-np.pi/2, np.pi/2)
     """
 
-    def __init__(self, n_components=None, tol=1e-3, maxiter=None):
+    def __init__(self, n_components=None, tol=1e-3, maxiter=None, lm_kwargs=None):
         self.n_components = n_components
         self.tol = tol
         self.maxiter = maxiter
+        self.lm_kwargs = lm_kwargs
 
     def _fit_transform(self, X):
         if self.n_components is None:
             self.n_components = X.shape[1] - 1
 
-        self._n_features = X.shape[1]  # d+1
-        self.v_ = []
-        self.r_ = []
+        self._n_features = X.shape[1]
+        self.v_, self.r_, xi, _ = pnspy.pns(
+            X,
+            1,
+            tol=self.tol,
+            maxiter=self.maxiter,
+            lm_kwargs=self.lm_kwargs,
+        )
 
-        residuals = []
-        for v, r, _, Xi in pns(X, self.tol, residual="scaled", maxiter=self.maxiter):
-            self.v_.append(v)
-            self.r_.append(r)
-            residuals.append(Xi)
-        self.embedding_ = np.flip(np.concatenate(residuals, axis=-1), axis=-1)
+        sin_r = 1
+        for i in range(xi.shape[1] - 1):
+            xi[:, i] *= sin_r
+            sin_r *= np.sin(self.r_[i])
+        xi[:, -1] *= sin_r
+
+        self.embedding_ = np.flip(xi, axis=-1)
 
     def fit(self, X, y=None):
         """Find principal nested spheres for the data X.
@@ -309,26 +338,7 @@ class IntrinsicPNS(TransformerMixin, BaseEstimator):
                 f"Input dimension {X.shape[1]} does not match "
                 f"fitted dimension {self._n_features}."
             )
-
-        d = X.shape[1] - 1
-        residuals = []
-
-        sin_r = 1
-        for k in range(1, d):
-            v, r = self.v_[k - 1], self.r_[k - 1]
-            P, xi = proj(X, v, r)
-            X = embed(P, v, r)
-            Xi = sin_r * xi
-            residuals.append(Xi)
-            sin_r *= np.sin(r)
-
-        v, r = self.v_[d - 1], self.r_[d - 1]
-        _, xi = proj(X, v, r)
-        Xi = sin_r * xi
-        residuals.append(Xi)
-
-        ret = np.flip(np.concatenate(residuals, axis=-1), axis=-1)
-        return ret[:, : self.n_components]
+        return pnspy.intrinsic_transform(X, self.v_, self.r_)
 
     def inverse_transform(self, Xi):
         """Transform the low-dimensional data back to the original hypersphere.
@@ -344,8 +354,8 @@ class IntrinsicPNS(TransformerMixin, BaseEstimator):
         Examples
         --------
         >>> from skpns import IntrinsicPNS
-        >>> from skpns.util import circular_data, unit_sphere
-        >>> X = circular_data()
+        >>> from pns.util import circular_data, unit_sphere
+        >>> X = circular_data([0, -1, 0])
         >>> pns = IntrinsicPNS(1)
         >>> Xi = pns.fit_transform(X)
         >>> X_inv = pns.inverse_transform(Xi)
@@ -355,96 +365,4 @@ class IntrinsicPNS(TransformerMixin, BaseEstimator):
         ... ax.scatter(*X.T)
         ... ax.scatter(*X_inv.T)
         """
-        d = self._n_features - 1
-        _, n = Xi.shape
-        if n > d:
-            raise ValueError(
-                f"Input dimension {n} is larger than fitted dimension {d}."
-            )
-        Xi = np.concatenate(
-            [Xi, np.zeros((Xi.shape[0], self._n_features - n - 1))], axis=-1
-        )  # Now, each column in Xi is Xi(0), ..., Xi(d-1).
-
-        # Un-scale Xi, i.e., xi(d-k) = Xi(d-k) / prod_{i=1}^{k-1}(sin(r_i)).
-        sin_rs = np.sin(self.r_[:-1])  # sin(r_1), sin(r_2), ..., sin(r_{d-1})
-        xi = Xi.copy()  # xi(0), ..., xi(d-1)
-        prod_sin_r = np.prod(sin_rs)
-        for i in range(d - 1):
-            xi[:, i] /= prod_sin_r
-            prod_sin_r /= sin_rs[-i - 1]
-        xi[:, d - 1] /= prod_sin_r
-
-        # Starting from the lowest dimension,
-        # 1. Convert to cartesian coordinates.
-        # 2. Reconstruct to one higher dimension, with north pole different from v.
-        # 3. Rotate for v.
-        # 4. Un-project with residuals.
-        # 5. Go to 2.
-
-        # Initialize: rotate xi(0) and convert to cartesian
-        xi[:, 0] += _cartesian_to_hyperspherical(self.v_[-1][np.newaxis, ...])[0]
-        x_dagger = _hyperspherical_to_cartesian(xi[:, :1])
-
-        # Step 2 to Step 5
-        for i in range(d - 1):
-            k = i + 1  # 1, 2, ..., d - 1
-            A = reconstruct(x_dagger, self.v_[-1 - k], self.r_[-1 - k])
-            x_dagger = _inv_proj(A, np.sin(xi[:, k]), self.v_[-1 - k], self.r_[-1 - k])
-
-        return x_dagger
-
-
-def _cartesian_to_hyperspherical(X):
-    """
-    Convert (N, d+1) Cartesian coordinates on a d-sphere
-    to hyperspherical coordinates (N, d).
-
-    Convention:
-      - xi[..., 0]: azimuthal angle in [-pi, pi]
-      - xi[..., 1:]: centered elevation angles in [-pi/2, pi/2]
-    """
-    N, D = X.shape
-    d = D - 1
-    xi = np.zeros((N, d))
-
-    xi[:, 0] = np.arctan2(X[:, 1], X[:, 0])
-    for i in range(1, d - 1):
-        denom = np.linalg.norm(X[:, i:], axis=1)
-        xi[:, i] = np.arctan(X[:, i + 1] / denom)
-    xi[:, -1] = np.arctan2(X[:, -1], np.linalg.norm(X[:, :-1], axis=1))
-
-    return xi
-
-
-def _hyperspherical_to_cartesian(xi):
-    """
-    Convert (N, d) hyperspherical coordinates back to
-    Cartesian coordinates (N, d+1) on a unit d-sphere.
-
-    Convention:
-      - xi[..., 0]: azimuthal angle in [-pi, pi]
-      - xi[..., 1:]: centered elevation angles in [-pi/2, pi/2]
-    """
-    N, d = xi.shape
-    X = np.zeros((N, d + 1))
-
-    for n in range(N):
-        angles = xi[n]
-        cos_elev = np.cumprod(np.cos(angles[1:][::-1]))[::-1]
-        X[n, 0] = np.cos(angles[0]) * (cos_elev[0] if d > 1 else 1)
-        X[n, 1] = np.sin(angles[0]) * (cos_elev[0] if d > 1 else 1)
-        for k in range(1, d):
-            X[n, k + 1] = np.sin(angles[k]) * (cos_elev[k] if k < d - 1 else 1)
-    return X
-
-
-def _inv_proj(P, xi, v, r):
-    """Inverse of pns.proj().
-
-    Parameters
-    ----------
-    P, xi : Results from pns.proj()
-    v, r : Principal axis and geodesic distance.
-    """
-    rho = (xi + r)[..., np.newaxis]
-    return (P * np.sin(rho) - np.sin(rho - r) * v) / np.sin(r)
+        return pnspy.inverse_intrinsic_transform(Xi, self.v_, self.r_)
