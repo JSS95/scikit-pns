@@ -144,15 +144,3 @@ Inverse transformers
 
 .. autoclass:: skpns.InverseExtrinsicPNS
     :members:
-
-Low-level functions
--------------------
-
-.. automodule:: skpns.pns
-    :members:
-
-Utilities
----------
-
-.. automodule:: skpns.util
-    :members:

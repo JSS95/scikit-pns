@@ -9,9 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Transformers are now based on [pnspy](https://pypi.org/project/pnspy/) package.
 
+### Added
+
+- `InverseExtrinsicPNS` class is added.
+
 ### Removed
 
 - `ExtrinsicPNS.to_hypersphere()` is removed. Use `inverse_transform()` method instead.
+
+- `skpns.pns` module is removed. Use `PnsPy` package (`pns.pns`, `pns.pss`, `pns.base`) instead.
+- `skpns.util` module is removed. Use `PnsPy` package (`pns.util`) instead.
 
 ## [1.3.0] - 2025-11-26
 

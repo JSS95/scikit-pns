@@ -48,8 +48,8 @@ class ExtrinsicPNS(TransformerMixin, BaseEstimator):
     Examples
     --------
     >>> from skpns import ExtrinsicPNS
-    >>> from skpns.util import circular_data, unit_sphere
-    >>> X = circular_data()
+    >>> from pns.util import circular_data, unit_sphere
+    >>> X = circular_data([0, -1, 0])
     >>> pns = ExtrinsicPNS(n_components=2)
     >>> X_reduced = pns.fit_transform(X)
     >>> X_inv = pns.inverse_transform(X_reduced)
@@ -164,7 +164,7 @@ class InverseExtrinsicPNS(TransformerMixin, BaseEstimator):
     Examples
     --------
     >>> from skpns import ExtrinsicPNS, InverseExtrinsicPNS
-    >>> from skpns.util import circular_data
+    >>> from pns.util import circular_data
     >>> from skl2onnx import to_onnx
     >>> X = circular_data().astype('float32')
     >>> pns = ExtrinsicPNS(n_components=2).fit(X)
@@ -246,8 +246,8 @@ class IntrinsicPNS(TransformerMixin, BaseEstimator):
     --------
     >>> import numpy as np
     >>> from skpns import IntrinsicPNS
-    >>> from skpns.util import circular_data, unit_sphere
-    >>> X = circular_data()
+    >>> from pns.util import circular_data, unit_sphere
+    >>> X = circular_data([0, -1, 0])
     >>> pns = IntrinsicPNS()
     >>> Xi = pns.fit_transform(X)
     >>> import matplotlib.pyplot as plt  # doctest: +SKIP
@@ -358,8 +358,8 @@ class IntrinsicPNS(TransformerMixin, BaseEstimator):
         Examples
         --------
         >>> from skpns import IntrinsicPNS
-        >>> from skpns.util import circular_data, unit_sphere
-        >>> X = circular_data()
+        >>> from pns.util import circular_data, unit_sphere
+        >>> X = circular_data([0, -1, 0])
         >>> pns = IntrinsicPNS(1)
         >>> Xi = pns.fit_transform(X)
         >>> X_inv = pns.inverse_transform(Xi)

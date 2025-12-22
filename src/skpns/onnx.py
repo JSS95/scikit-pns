@@ -18,8 +18,6 @@ from skl2onnx.algebra.onnx_ops import (
     OnnxSub,
 )
 
-from .pns import _R
-
 __all__ = [
     "shape_calculator",
     "intrinsicpns_converter",
@@ -97,7 +95,7 @@ def onnx_proj(X, v, r, opv, outnames=None):
 
 
 def onnx_embed(x, v, r, opv, outnames=None):
-    R = _R(v)
+    R = pnspy.base.rotation_matrix(v)
     coeff = (1 / np.sin(r) * R[:-1:, :]).T.astype(np.float32)
     ret = OnnxMatMul(
         x,
