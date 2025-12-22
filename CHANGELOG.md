@@ -15,6 +15,7 @@ Transformers are now based on [pnspy](https://pypi.org/project/pnspy/) package.
 
 ### Removed
 
+- `PNS` alias for `ExtrinsicPNS` is removed.
 - `ExtrinsicPNS.to_hypersphere()` is removed. Use `inverse_transform()` method instead.
 
 - `skpns.pns` module is removed. Use `PnsPy` package (`pns.pns`, `pns.pss`, `pns.base`) instead.

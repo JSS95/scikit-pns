@@ -7,7 +7,6 @@ from sklearn.base import BaseEstimator, TransformerMixin
 __all__ = [
     "ExtrinsicPNS",
     "InverseExtrinsicPNS",
-    "PNS",
     "IntrinsicPNS",
 ]
 
@@ -179,9 +178,6 @@ class InverseExtrinsicPNS(TransformerMixin, BaseEstimator):
 
     def transform(self, X):
         return self.extrinsic_pns.inverse_transform(X)
-
-
-PNS = ExtrinsicPNS
 
 
 class IntrinsicPNS(TransformerMixin, BaseEstimator):

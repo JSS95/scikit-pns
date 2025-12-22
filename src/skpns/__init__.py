@@ -7,11 +7,10 @@ Low-level functions are available in :mod:`skpns.pns`.
        "Analysis of principal nested spheres." Biometrika 99.3 (2012): 551-568.
 """
 
-from .sklearn import PNS, ExtrinsicPNS, IntrinsicPNS, InverseExtrinsicPNS
+from .sklearn import ExtrinsicPNS, IntrinsicPNS, InverseExtrinsicPNS
 
 __all__ = [
     "ExtrinsicPNS",
-    "PNS",
     "IntrinsicPNS",
     "InverseExtrinsicPNS",
 ]
