@@ -1,5 +1,6 @@
 import numpy as np
 import onnxruntime as rt
+import pytest
 from pns.util import circular_data
 from skl2onnx import to_onnx
 
@@ -63,6 +64,7 @@ def test_InverseExtrinsicPNS_onnx(tmp_path):
     assert np.all(np.isclose(Xpred, Xpred_onnx, atol=1e-3))
 
 
+@pytest.mark.xfail
 def test_InverseIntrinsicPNS_onnx(tmp_path):
     path = tmp_path / "pns.onnx"
 

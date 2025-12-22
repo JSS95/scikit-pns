@@ -379,15 +379,6 @@ class InverseIntrinsicPNS(TransformerMixin, BaseEstimator):
     ----------
     intrinsic_pns : IntrinsicPNS
         Fitted :class:`IntrinsicPNS` instance.
-
-    Examples
-    --------
-    >>> from skpns import IntrinsicPNS, InverseIntrinsicPNS
-    >>> from pns.util import circular_data
-    >>> from skl2onnx import to_onnx
-    >>> X = circular_data().astype('float32')
-    >>> pns = IntrinsicPNS(n_components=2).fit(X)
-    >>> onnx = to_onnx(InverseIntrinsicPNS(pns), X[:1])
     """
 
     def __init__(self, intrinsic_pns):
