@@ -27,8 +27,8 @@ scikit-pns is imported as :mod:`skpns`.
 .. code-block:: python
 
     from skpns import IntrinsicPNS
-    from skpns.util import circular_data
-    X = circular_data()
+    from pns.util import circular_data
+    X = circular_data([0, -1, 0])
     X_new = IntrinsicPNS().fit_transform(X)
 
 ONNX support
@@ -47,12 +47,12 @@ Transformers can be converted to ONNX models.
 
     import numpy as np
     from skpns import ExtrinsicPNS, IntrinsicPNS
-    from skpns.util import circular_data
+    from pns.util import circular_data
     from skl2onnx import to_onnx
     import matplotlib.pyplot as plt
 
     # Train and save model
-    X = circular_data().astype(np.float32)  # Must be float32
+    X = circular_data([0, -1, 0]).astype(np.float32)  # Must be float32
 
     int_pns = IntrinsicPNS(2).fit(X)
     with open("int_pns.onnx", "wb") as f:
@@ -100,7 +100,7 @@ To build a model for inverse transformation, use dedicated wrapper instead.
     :context: close-figs
 
     from skpns import InverseExtrinsicPNS
-    from skpns.util import unit_sphere
+    from pns.util import unit_sphere
 
     X_transform = ext_pns.transform(X).astype(np.float32)
 
