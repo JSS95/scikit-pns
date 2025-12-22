@@ -136,7 +136,7 @@ class ExtrinsicPNS(TransformerMixin, BaseEstimator):
                 f"Input dimension {X.shape[1]} does not match "
                 f"fitted dimension {self._n_features}."
             )
-        return pnspy.extrinsic_pns(X, self.v_, self.r_)
+        return pnspy.extrinsic_transform(X, self.v_, self.r_)
 
     def inverse_transform(self, X):
         """Transform the low-dimensional data back to the original hypersphere.
@@ -149,7 +149,7 @@ class ExtrinsicPNS(TransformerMixin, BaseEstimator):
         -------
         X_new : array-like of shape (n_samples, n_features)
         """
-        return pnspy.inverse_extrinsic_pns(X, self.v_, self.r_)
+        return pnspy.inverse_extrinsic_transform(X, self.v_, self.r_)
 
 
 class InverseExtrinsicPNS(TransformerMixin, BaseEstimator):
