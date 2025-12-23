@@ -28,7 +28,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "pnspy>=0.4.1",
+    "pnspy>=1.0.0a0",
     "scikit-learn",
 ]
 

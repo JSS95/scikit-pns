@@ -1,6 +1,5 @@
 """Scikit-learn wrappers for PNS."""
 
-import numpy as np
 import pns as pnspy
 from sklearn.base import BaseEstimator, TransformerMixin
 
@@ -71,13 +70,15 @@ class ExtrinsicPNS(TransformerMixin, BaseEstimator):
 
     def _fit_transform(self, X):
         self._n_features = X.shape[1]
-        self.v_, self.r_, _, self.embedding_ = pnspy.pns(
+        self.v_, self.r_, X_transform = pnspy.fit_transform(
             X,
             self.n_components,
+            "extrinsic",
             tol=self.tol,
             maxiter=self.maxiter,
             lm_kwargs=self.lm_kwargs,
         )
+        return X_transform
 
     def fit(self, X, y=None):
         """Find principal nested spheres for the data X.
@@ -112,8 +113,7 @@ class ExtrinsicPNS(TransformerMixin, BaseEstimator):
         X_new : array-like, shape (n_samples, n_components)
             X transformed in the new space.
         """
-        self._fit_transform(X)
-        return self.embedding_
+        return self._fit_transform(X)
 
     def transform(self, X):
         """Transform X onto the fitted subsphere.
@@ -133,7 +133,7 @@ class ExtrinsicPNS(TransformerMixin, BaseEstimator):
                 f"Input dimension {X.shape[1]} does not match "
                 f"fitted dimension {self._n_features}."
             )
-        return pnspy.extrinsic_transform(X, self.v_, self.r_)
+        return pnspy.transform(X, self.v_, self.r_, self.n_components, "extrinsic")
 
     def inverse_transform(self, X):
         """Transform the low-dimensional data back to the original hypersphere.
@@ -146,7 +146,7 @@ class ExtrinsicPNS(TransformerMixin, BaseEstimator):
         -------
         X_new : array-like of shape (n_samples, n_features)
         """
-        return pnspy.inverse_extrinsic_transform(X, self.v_, self.r_)
+        return pnspy.inverse_transform(X, self.v_, self.r_, "extrinsic")
 
 
 class InverseExtrinsicPNS(TransformerMixin, BaseEstimator):
@@ -268,21 +268,15 @@ class IntrinsicPNS(TransformerMixin, BaseEstimator):
             self.n_components = X.shape[1] - 1
 
         self._n_features = X.shape[1]
-        self.v_, self.r_, xi, _ = pnspy.pns(
+        self.v_, self.r_, X_transform = pnspy.fit_transform(
             X,
-            1,
+            self.n_components,
+            "intrinsic",
             tol=self.tol,
             maxiter=self.maxiter,
             lm_kwargs=self.lm_kwargs,
         )
-
-        sin_r = 1
-        for i in range(xi.shape[1] - 1):
-            xi[:, i] *= sin_r
-            sin_r *= np.sin(self.r_[i])
-        xi[:, -1] *= sin_r
-
-        self.embedding_ = np.flip(xi, axis=-1)
+        return X_transform
 
     def fit(self, X, y=None):
         """Find principal nested spheres for the data X.
@@ -317,8 +311,7 @@ class IntrinsicPNS(TransformerMixin, BaseEstimator):
         X_new : array-like, shape (n_samples, n_components)
             X transformed in the new space.
         """
-        self._fit_transform(X)
-        return self.embedding_[:, : self.n_components]
+        return self._fit_transform(X)
 
     def transform(self, X, y=None):
         """Transform X onto the fitted subsphere.
@@ -338,7 +331,7 @@ class IntrinsicPNS(TransformerMixin, BaseEstimator):
                 f"Input dimension {X.shape[1]} does not match "
                 f"fitted dimension {self._n_features}."
             )
-        return pnspy.intrinsic_transform(X, self.v_, self.r_)
+        return pnspy.transform(X, self.v_, self.r_, self.n_components, "intrinsic")
 
     def inverse_transform(self, Xi):
         """Transform the low-dimensional data back to the original hypersphere.
@@ -365,4 +358,4 @@ class IntrinsicPNS(TransformerMixin, BaseEstimator):
         ... ax.scatter(*X.T)
         ... ax.scatter(*X_inv.T)
         """
-        return pnspy.inverse_intrinsic_transform(Xi, self.v_, self.r_)
+        return pnspy.inverse_transform(Xi, self.v_, self.r_, "intrinsic")
